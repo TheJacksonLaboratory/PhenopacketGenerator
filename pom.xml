@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.jax.phenopacketgenerator</groupId>
+    <version>0.0.1</version>
+    <artifactId>phenopacketgenerator</artifactId>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.1.3.RELEASE</version>
+    </parent>
+
+    <name>Phenopacket Generatpr</name>
+    <url>https://github.com/TheJacksonLaboratory/PhenopacketGenerator</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <jdk.version>1.8</jdk.version>
+        <phenopacket.version>1.0.0-RC3</phenopacket.version>
+        <jackson.fasterxml.version>2.8.8</jackson.fasterxml.version>
+        <junit-jupiter.version>5.4.1</junit-jupiter.version>
+        <slf4j.version>1.7.25</slf4j.version>
+        <protobuf.version>3.8.0</protobuf.version>
+        <phenol.version>1.4.1</phenol.version>
+        <testfx.version>4.0.15-alpha</testfx.version>
+    </properties>
+
+  <!--  <scm>
+        <connection>scm:git:git@github.com:monarch-initiative/HpoCaseAnnotator.git</connection>
+        <developerConnection>scm:git:git@github.com:monarch-initiative/HpoCaseAnnotator.git</developerConnection>
+        <url>https://github.com/monarch-initiative/HpoCaseAnnotator</url>
+        <tag>v@{project.version}</tag>
+    </scm>
+    -->
+
+    <build>
+        <finalName>Phenopacket-Generator-${project.version}</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+      <plugins>
+          <plugin>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-maven-plugin</artifactId>
+          </plugin>
+      </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.monarchinitiative.hpotextmining</groupId>
+            <artifactId>hpotextmining-gui</artifactId>
+            <version>0.2.7</version>
+        </dependency>
+
+
+        <!-- https://mvnrepository.com/artifact/org.controlsfx/controlsfx -->
+        <dependency>
+            <groupId>org.controlsfx</groupId>
+            <artifactId>controlsfx</artifactId>
+            <version>8.40.12</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--  TEST DEPENDENCIES  -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--        Libraries for testing         -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <version>2.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+</project>
