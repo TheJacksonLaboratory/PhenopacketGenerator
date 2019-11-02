@@ -52,6 +52,14 @@
     </build>
 
     <dependencies>
+
+        <!-- Phenopacket format for exchange of phenotype data. -->
+        <dependency>
+            <groupId>org.phenopackets</groupId>
+            <artifactId>phenopacket-schema</artifactId>
+            <version>${phenopacket.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.monarchinitiative.hpotextmining</groupId>
             <artifactId>hpotextmining-gui</artifactId>

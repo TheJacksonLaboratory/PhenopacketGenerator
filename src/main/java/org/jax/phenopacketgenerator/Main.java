@@ -6,21 +6,14 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.JavaFXBuilderFactory;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.jax.phenopacketgenerator.gui.MainController;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ConfigurableApplicationContext;
 
-import java.io.*;
-import java.util.Enumeration;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutorService;
 
 @SpringBootApplication
 public class Main extends Application {
@@ -39,16 +32,6 @@ public class Main extends Application {
     @Override
     public void init() throws Exception {
         super.init();
-        // export app's version into System properties
-//        try (InputStream is = getClass().getResourceAsStream("/application.properties")) {
-//            Properties properties = new Properties();
-//            properties.load(is);
-//            String version = properties.getProperty(PG_VERSION_PROP_KEY, "unknown version");
-//            System.setProperty(PG_VERSION_PROP_KEY, version);
-//            String name = properties.getProperty(PG_NAME_KEY, "Phenopacket Generator");
-//            System.setProperty(PG_NAME_KEY, name);
-//        }
-
     }
 
     @Override
@@ -63,19 +46,11 @@ public class Main extends Application {
 
         Parent rootNode = FXMLLoader.load(MainController.class.getResource("main.fxml"), resourceBundle,
                 new JavaFXBuilderFactory(), context::getBean);
+        window.setTitle("Phenopacket Generator"); // todo -- set from porperties file
         window.setScene(new Scene(rootNode));
         window.show();
-/*
-        injector = Guice.createInjector(new HpoCaseAnnotatorModule(window, getHostServices()));
-        ResourceBundle resourceBundle = injector.getInstance(ResourceBundle.class);
-
-        Parent rootNode = FXMLLoader.load(MainController.class.getResource("MainView.fxml"), resourceBundle,
-                new JavaFXBuilderFactory(), injector::getInstance);
-        String windowTitle = injector.getInstance(Key.get(String.class, Names.named("appNameVersion")));
-        window.setTitle(windowTitle);
+        /*
         window.getIcons().add(new Image(getClass().getResourceAsStream("/img/app-icon.png")));
-        window.setScene(new Scene(rootNode));
-        window.show();
         */
 
     }
