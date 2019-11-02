@@ -15,6 +15,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.jax.phenopacketgenerator.OptionalResources;
 import org.jax.phenopacketgenerator.model.PgOntologyClass;
+import org.jax.phenopacketgenerator.model.PhenopacketExporter;
 import org.monarchinitiative.hpotextmining.gui.controller.HpoTextMining;
 import org.monarchinitiative.hpotextmining.gui.controller.Main;
 import org.monarchinitiative.phenol.ontology.data.Ontology;
@@ -22,6 +23,8 @@ import org.monarchinitiative.phenol.ontology.data.Term;
 import org.monarchinitiative.phenol.ontology.data.TermId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -55,8 +58,8 @@ public class MainController {
     private final Ontology ontology;
 
     private final ObservableList<PgOntologyClass> phenotypes = FXCollections.observableList(new ArrayList<>());
-
-
+    @Autowired
+    private String phenopacketsVersion = "todo";
 
     @FXML
     public StackPane miningbox;
@@ -70,7 +73,7 @@ public class MainController {
     @FXML
     private Label vcfFileLabel;
 
-
+    @Autowired
     public MainController(HpoTextMining mining, OptionalResources optionalResources,
                           Properties properties, ExecutorService executorService,
                           Ontology ontology, URL scigraphMiningUrl ) {
@@ -97,11 +100,15 @@ public class MainController {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Export as Phenopacket (JSON) file");
         File f = chooser.showSaveDialog(null);
-        Set<Main.PhenotypeTerm> hpoTerms =  mining.getApprovedTerms();
-        for (Main.PhenotypeTerm pterm : hpoTerms) {
-            System.out.println(pterm.toString());
+        if (f==null) {
+            PopUps.showInfoMessage("Could not retrieve path to save phenopacket","Warning");
+            return;
         }
+        PhenopacketExporter exporter = new PhenopacketExporter(this.phenotypes,this.vcfFileAbsolutePath);
         System.out.println("[TODO] Save complete Phenopacket to this file: " + f.getAbsolutePath());
+        String biocurator = this.optionalResources.getBiocuratorId();
+        String id = "TODO";
+        exporter.export(id, biocurator, phenopacketsVersion, f);
     }
 
 
