@@ -3,7 +3,6 @@ package org.jax.phenopacketgenerator.model;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
 import org.jax.phenopacketgenerator.gui.PopUps;
-import org.phenopackets.schema.v1.Family;
 import org.phenopackets.schema.v1.Phenopacket;
 import org.phenopackets.schema.v1.core.*;
 import org.slf4j.Logger;
@@ -13,6 +12,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -71,9 +71,21 @@ public class PhenopacketExporter {
         } else {
             this.age = UNITIALIZED;
         }
+    }
 
-
-
+    /**
+     * Make sure the file name ends with ".json"
+     * @param f The file name returned by the user from the File chooser dialog
+     * @return The corresponding path (with .json appended if necessary)
+     */
+    private Path getCanonicalPath(File f) {
+        String abspath = f.getAbsolutePath();
+        if (abspath.toLowerCase().endsWith("json")) {
+            return f.toPath();
+        }
+        abspath = abspath + ".json";
+        File f2 = new File(abspath);
+        return f2.toPath();
     }
 
 
@@ -107,8 +119,9 @@ public class PhenopacketExporter {
 
     public void export(File fileToWriteTo) {
         Phenopacket packet = encode();
-        try (BufferedWriter writer = Files.newBufferedWriter(fileToWriteTo.toPath())) {
-            LOGGER.trace("Writing phenopacket to '{}'", fileToWriteTo.getAbsolutePath());
+        Path mypath = getCanonicalPath(fileToWriteTo);
+        try (BufferedWriter writer = Files.newBufferedWriter(mypath)) {
+            LOGGER.trace("Writing phenopacket to '{}'", mypath.toFile().getAbsolutePath());
             String jsonString = PRINTER.print(packet);
             writer.write(jsonString);
         } catch (IOException e) {

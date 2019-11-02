@@ -45,7 +45,7 @@ public final class OptionalResources {
 
     }
 
-    public static Ontology deserializeOntology(File ontologyPath) throws IOException, PhenolException {
+    public static Ontology deserializeOntology(File ontologyPath) throws IOException {
         // this might not be the best place for ontology deserialization, but it works for now
         try (InputStream is = Files.newInputStream(ontologyPath.toPath())) {
             return deserializeOntology(is);
