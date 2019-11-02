@@ -1,19 +1,22 @@
 package org.jax.phenopacketgenerator.gui;
 
 
+import com.google.common.collect.ImmutableList;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.jax.phenopacketgenerator.OptionalResources;
+import org.jax.phenopacketgenerator.model.PgModel;
 import org.jax.phenopacketgenerator.model.PgOntologyClass;
 import org.jax.phenopacketgenerator.model.PhenopacketExporter;
 import org.monarchinitiative.hpotextmining.gui.controller.HpoTextMining;
@@ -56,10 +59,19 @@ public class MainController {
     private final URL scigraphMiningUrl;
 
     private final Ontology ontology;
-
+    /** valid assemblies for VCF file. */
+    private final List<String> assemblies = ImmutableList.of("hg19", "hg38", "hg39");
+    /** valid values for sex combobox */
+    private final List<String> sexValues = ImmutableList.of("UNKOWN", "FEMALE", "MALE");
     private final ObservableList<PgOntologyClass> phenotypes = FXCollections.observableList(new ArrayList<>());
     @Autowired
-    private String phenopacketsVersion = "todo";
+    private String phenopacketsVersion;
+    @Autowired
+    private String ecoVersion;
+
+    private final StringProperty probandId;
+    private final StringProperty phenopacketId;
+    private final StringProperty isoAge;
 
     @FXML
     public StackPane miningbox;
@@ -73,6 +85,24 @@ public class MainController {
     @FXML
     private Label vcfFileLabel;
 
+    @FXML
+    public ComboBox<String> genomeBuildComboBox;
+
+    @FXML
+    public ComboBox<String> sexComboBox;
+
+    @FXML
+    private TextField probandIdTextfield;
+
+    @FXML
+    private TextField phenopacketIdTextfield;
+
+    @FXML TextField ageTextfield;
+
+    @FXML
+    private Label exportPhenopacketLabel;
+
+
     @Autowired
     public MainController(HpoTextMining mining, OptionalResources optionalResources,
                           Properties properties, ExecutorService executorService,
@@ -83,6 +113,9 @@ public class MainController {
         this.executorService = executorService;
         this.scigraphMiningUrl = scigraphMiningUrl;
         this.ontology = ontology;
+        this.probandId = new SimpleStringProperty(this, "probandId", null);
+        this.phenopacketId = new SimpleStringProperty(this, "phenopacketId", null);
+        this.isoAge = new SimpleStringProperty(this, "isoAge", null);
     }
 
     public void initialize() {
@@ -91,7 +124,17 @@ public class MainController {
         executorService.submit(task);
         // generate phenotype summary text
         phenotypes.addListener(makePhenotypeSummaryLabel(phenotypes, phenotypeSummaryLabel));
-
+        genomeBuildComboBox.getItems().addAll(assemblies);
+        sexComboBox.getItems().addAll(sexValues);
+        sexComboBox.setValue("UNKNOWN");
+        probandId.bind(probandIdTextfield.textProperty());
+        phenopacketId.bind(phenopacketIdTextfield.textProperty());
+        isoAge.bindBidirectional(ageTextfield.textProperty());
+        probandIdTextfield.setPromptText("ID for proband/patient");
+        phenopacketIdTextfield.setPromptText("ID for Phenopacket");
+        ageTextfield.setPromptText("PxxYyyMzzD");
+        Tooltip agett = new Tooltip("Enter Age is ISO TODO format, e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days");
+        ageTextfield.setTooltip(agett);
     }
 
 
@@ -104,11 +147,46 @@ public class MainController {
             PopUps.showInfoMessage("Could not retrieve path to save phenopacket","Warning");
             return;
         }
-        PhenopacketExporter exporter = new PhenopacketExporter(this.phenotypes,this.vcfFileAbsolutePath);
+        PgModel pgmodel = new PgModel(this.phenotypes);
+        if (this.vcfFileAbsolutePath != null) {
+            pgmodel.setVcfPath(this.vcfFileAbsolutePath);
+            String assembly = genomeBuildComboBox.getValue() == null ? "hg19" : genomeBuildComboBox.getValue();
+            pgmodel.setGenomeAssembly(assembly);
+        }
+        pgmodel.setBiocurator(this.optionalResources.getBiocuratorId());
+        String id = probandId.getValue().isEmpty() ? "n/a" : probandId.getValue();
+        String ppacketid = phenopacketId.getValue().isEmpty() ? "n/a" : phenopacketId.getValue();
+        pgmodel.setProbandId(id);
+        pgmodel.setPhenopacketId(ppacketid);
+        String hpoVersion = this.ontology.getMetaInfo().getOrDefault("version","unknown HPO version");
+        pgmodel.setHpoVersion(hpoVersion);
+        pgmodel.setEcoVersion(this.ecoVersion);
+        pgmodel.setPhenopacketVersion(this.phenopacketsVersion);
+        if (! this.isoAge.getValue().isEmpty())
+        try {
+            pgmodel.setIsoAge(isoAge.getValue());
+        } catch (IllegalArgumentException e) {
+            PopUps.showException("ISO Format error","Error","Could not parse Age test",e);
+        }
+        String sx = this.sexComboBox.getValue();
+        if (! sx.equals("UNKNOWN")) {
+            pgmodel.setSex(sx);
+        }
+        PhenopacketExporter exporter = new PhenopacketExporter(pgmodel);
         System.out.println("[TODO] Save complete Phenopacket to this file: " + f.getAbsolutePath());
-        String biocurator = this.optionalResources.getBiocuratorId();
-        String id = "TODO";
-        exporter.export(id, biocurator, phenopacketsVersion, f);
+
+        exporter.export(f);
+        String abspath = f.getAbsolutePath();
+        int L = abspath.length();
+        String message;
+        if (L < 85) {
+            message = String.format("Wrote to %s",abspath);
+        } else {
+            message = String.format("Wrote to %s...%s",
+                    abspath.substring(0,30),
+                    abspath.substring(L-30));
+        }
+        this.exportPhenopacketLabel.setText(message);
     }
 
 

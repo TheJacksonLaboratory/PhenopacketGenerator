@@ -1,7 +1,9 @@
 package org.jax.phenopacketgenerator.model;
 
+import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
 import org.jax.phenopacketgenerator.gui.PopUps;
+import org.phenopackets.schema.v1.Family;
 import org.phenopackets.schema.v1.Phenopacket;
 import org.phenopackets.schema.v1.core.*;
 import org.slf4j.Logger;
@@ -23,16 +25,55 @@ public class PhenopacketExporter {
 
     // source https://bioportal.bioontology.org/ontologies/ECO/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FECO_0000033&jump_to_nav=true
     private static final OntologyClass TRACEABLE_AUTHOR_STATEMENT = ontologyClass("ECO:0000033", "author statement supported by traceable reference");
-
+    private final static String UNITIALIZED = "Uninitialized";
 
     private final List<PgOntologyClass> phenotypes;
+    private final boolean hasVcf;
     private final String vcfPath;
+    private final String genomeAssembly;
+    private final String probandId;
+    private final String phenopacketId;
+    private final String biocuratorId;
+    private final String phenopacketVersion;
+    private final String ecoVersion;
+    private final String hpoVersion;
+
+    private final String sex;
+    private final String age;
 
 
 
-    public PhenopacketExporter(List<PgOntologyClass> phenotypes, String vcfPath) {
-        this.phenotypes = phenotypes;
-        this.vcfPath = vcfPath;
+
+    public PhenopacketExporter(PgModel model) {
+        this.phenotypes = model.getPhenotypes();
+        this.hasVcf = model.hasVcf();
+        if (model.hasVcf()) {
+            String path = model.getVcfPath();
+            this.vcfPath = path.endsWith("json") ? path : String.format("%s.jsom",path);
+            this.genomeAssembly = model.getGenomeAssembly();
+        } else {
+            this.vcfPath = null;
+            this.genomeAssembly = null;
+        }
+        this.probandId = model.getProbandId();
+        this.phenopacketId = model.getPhenopacketId();
+        this.biocuratorId = model.getBiocurator();
+        this.phenopacketVersion = model.getPhenopacketVersion();
+        this.ecoVersion = model.getEcoVersion();
+        this.hpoVersion = model.getHpoVersion();
+        if (model.hasSexData()) {
+            this.sex = model.getSex();
+        } else {
+            this.sex = UNITIALIZED;
+        }
+        if (model.hasAgeData()) {
+            this.age = model.getIsoAge();
+        } else {
+            this.age = UNITIALIZED;
+        }
+
+
+
     }
 
 
@@ -64,10 +105,8 @@ public class PhenopacketExporter {
                 .build();
     }
 
-    public void export(String id, String biocuratorId,
-                       String phenopacketVersion,
-                       File fileToWriteTo) {
-        Phenopacket packet = encode(id,  biocuratorId, phenopacketVersion);
+    public void export(File fileToWriteTo) {
+        Phenopacket packet = encode();
         try (BufferedWriter writer = Files.newBufferedWriter(fileToWriteTo.toPath())) {
             LOGGER.trace("Writing phenopacket to '{}'", fileToWriteTo.getAbsolutePath());
             String jsonString = PRINTER.print(packet);
@@ -78,45 +117,74 @@ public class PhenopacketExporter {
         }
     }
 
-    private Phenopacket encode(String id, String biocuratorId,
-                              String phenopacketVersion) {
-        String probandId = id;
 
-       // String metadata = data.getMetadata();
+    private Individual subject() {
+        Individual.Builder builder = Individual.newBuilder() .setId(probandId);
+        if (! age.equals(UNITIALIZED)) {
+            builder.setAgeAtCollection(Age.newBuilder().setAge(age).build());
+        }
+        if (! sex.equals(UNITIALIZED)) {
+            if (sex.equals("MALE")) {
+                builder.setSex(Sex.MALE);
+            } else if (sex.equals("FEMALE")) {
+                builder.setSex(Sex.OTHER_SEX);
+            }
+        }
+        return builder.build();
+    }
+
+
+
+    private Phenopacket encode() {
         Phenopacket.Builder builder = Phenopacket.newBuilder()
-                .setId(probandId)
-                // proband and the publication data
-                .setSubject(Individual.newBuilder()
-                        .setId(probandId)
-                        //.setAgeAtCollection(Age.newBuilder().setAge(data.getFamilyInfo().getAge()).build())
-                       // .setSex(hcaSexToPhenopacketSex(data.getFamilyInfo().getSex()))
-                        //.setTaxonomy(HOMO_SAPIENS)
-                        .build())
+                .setId(phenopacketId)
+                // proband
+                .setSubject(subject())
                 // phenotype (HPO) terms
                 .addAllPhenotypicFeatures(phenotypes.stream()
                         .map(hcaPhenotypeToPhenopacketPhenotype())
-                        .collect(Collectors.toList()))
-                // metadata - Biocurator ID, ontologies used
-                .setMetaData(MetaData.newBuilder()
-                       // .setCreatedBy(data.getSoftwareVersion())
-                        .setSubmittedBy(biocuratorId)
-                        .setPhenopacketSchemaVersion(phenopacketVersion)
-                       // .addAllResources(RESOURCES)
-                      //  .addExternalReferences(ExternalReference.newBuilder()
-                       //         .setId(String.format("PMID:%s", data.getPublication().getPmid()))
-                         //       .setDescription(data.getPublication().getTitle())
-                       //         .build())
-                        .build())
-                ;
+                        .collect(Collectors.toList()));
         if (this.vcfPath != null) {
             HtsFile hts = HtsFile.newBuilder()
                     .setHtsFormat(HtsFile.HtsFormat.VCF)
-                    .setGenomeAssembly("TODO")
+                    .setGenomeAssembly(this.genomeAssembly)
                     .setUri(this.vcfPath)
                     .build();
             builder.addHtsFiles(hts);
         }
+        builder.setMetaData(metadata());
         return builder.build();
+    }
+
+
+    private MetaData metadata() {
+
+        long millis = System.currentTimeMillis();
+        Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)
+                .setNanos((int) ((millis % 1000) * 1000000)).build();
+
+        MetaData metaData = MetaData.newBuilder()
+                .addResources(Resource.newBuilder()
+                        .setId("hp")
+                        .setName("human phenotype ontology")
+                        .setNamespacePrefix("HP")
+                        .setIriPrefix("http://purl.obolibrary.org/obo/HP_")
+                        .setUrl("http://purl.obolibrary.org/obo/hp.owl")
+                        .setVersion(this.hpoVersion)
+                        .build())
+                .addResources(Resource.newBuilder()
+                        .setId("eco")
+                        .setName("Evidence and Conclusion Ontology")
+                        .setNamespacePrefix("ECO")
+                        .setIriPrefix("http://purl.obolibrary.org/obo/ECO_")
+                        .setUrl("http://purl.obolibrary.org/obo/eco.owl")
+                        .setVersion(this.ecoVersion)
+                        .build())
+                .setCreatedBy(this.biocuratorId)
+                .setCreated(timestamp)
+                .setPhenopacketSchemaVersion(this.phenopacketVersion)
+                .build();
+        return metaData;
     }
 
 }

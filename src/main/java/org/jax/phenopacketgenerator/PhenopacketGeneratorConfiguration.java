@@ -53,8 +53,12 @@ public class PhenopacketGeneratorConfiguration {
         return new OptionalResources();
     }
 
-    @Bean(name = "phenopacketsVersion")
     public String phenopacketsVersion(Environment env) {
         return env.getProperty("phenopacket.version");
+    }
+
+    @Bean(name = "ecoVersion")
+    public String ecoVersion(Environment env) {
+        return env.getProperty("eco.version");
     }
 }
