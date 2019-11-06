@@ -83,18 +83,7 @@ public class PhenopacketGeneratorConfiguration {
         try {
             String configpath = String.format("%s%s%s",appHomeDir(), File.separator, CONFIG_FILE_BASENAME );
             BufferedReader reader = new BufferedReader(new FileReader(configpath));
-            String line;
-            while ((line = reader.readLine())!= null) {
-                if (line.startsWith("#") || line.isEmpty()) {
-                    continue;
-                }
-                String []KV = line.split(":");
-                if (KV.length == 2) {
-                    String key = KV[0].trim();
-                    String value = KV[1].trim();
-                    properties.setProperty(key,value);
-                }
-            }
+            properties.load(reader);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -151,10 +140,9 @@ public class PhenopacketGeneratorConfiguration {
         String configpath = String.format("%s%s%s",appHomeDir, File.separator, "phenopacketgen.config" );
         File config = new File(configpath);
         if (! config.exists()) {
-            try {
+            try { // initialize the file
                 BufferedWriter writer = new BufferedWriter(new FileWriter(config));
                 writer.write("#Phenopacket Generator Configuration\n");
-                writer.write("hp.obo.path:");
                 writer.close();
             } catch (IOException e) {
                 e.printStackTrace();

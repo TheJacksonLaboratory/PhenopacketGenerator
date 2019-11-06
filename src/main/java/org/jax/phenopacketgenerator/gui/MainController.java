@@ -174,23 +174,15 @@ public class MainController {
 
 
     private void setHpoFromPropertiesIfPossible() {
+        Properties properties = new Properties();
         if (ontology != null) return;
-        String hpoOboPath = null;
         try {
             BufferedReader br = new BufferedReader(new FileReader(this.configFilePath.toFile()));
-            String line;
-            while ((line = br.readLine())!= null) {
-                if (line.startsWith("#")) continue;
-                String [] KV = line.split(":");
-                String key = KV[0].trim();
-                if (key.equals("hp.obo.path")) {
-                    hpoOboPath = KV[1].trim();
-                }
-            }
+            properties.load(br);
             br.close();
-            if (hpoOboPath != null) {
-                this.hpoAbsolutePath = hpoOboPath;
-                optionalResources.setOntologyPath(new File(hpoOboPath));
+            if (properties.getProperty("hp.obo.path") != null) {
+                this.hpoAbsolutePath = properties.getProperty("hp.obo.path");
+                optionalResources.setOntologyPath(new File(this.hpoAbsolutePath ));
                 optionalResources.initializeOntologyFromFile();
                 this.ontology = optionalResources.getOntology();
                 this.hpoVersion = ontology.getMetaInfo().get("version");
@@ -223,7 +215,7 @@ public class MainController {
         String ppacketid = phenopacketId.getValue().isEmpty() ? "n/a" : phenopacketId.getValue();
         pgmodel.setProbandId(id);
         pgmodel.setPhenopacketId(ppacketid);
-        String hpoVersion = this.ontology.getMetaInfo().getOrDefault("version","unknown HPO version");
+        String hpoVersion = this.optionalResources.getOntology().getMetaInfo().getOrDefault("version","unknown HPO version");
         pgmodel.setHpoVersion(hpoVersion);
         pgmodel.setEcoVersion(this.ecoVersion);
         pgmodel.setPhenopacketVersion(this.phenopacketsVersion);
