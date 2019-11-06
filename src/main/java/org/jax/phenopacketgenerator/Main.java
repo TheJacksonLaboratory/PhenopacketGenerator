@@ -46,7 +46,7 @@ public class Main extends Application {
 
         Parent rootNode = FXMLLoader.load(MainController.class.getResource("main.fxml"), resourceBundle,
                 new JavaFXBuilderFactory(), context::getBean);
-        window.setTitle("Phenopacket Generator"); // todo -- set from porperties file
+        window.setTitle("Phenopacket Generator"); // todo -- set from properties file
         window.setScene(new Scene(rootNode));
         window.show();
         /*
