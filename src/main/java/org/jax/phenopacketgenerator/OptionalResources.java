@@ -14,13 +14,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.Properties;
 
 
 /**
  * This class is a POJO holding paths to HRMD resources. Created by Daniel Danis on 7/16/17.
  */
 public final class OptionalResources {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(OptionalResources.class);
     /**
      * Use this name to save HP.obo file on the local filesystem.
      */
@@ -31,7 +32,7 @@ public final class OptionalResources {
 
     public static final String ONTOLOGY_PATH_PROPERTY = "hp.obo.path";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OptionalResources.class);
+
 
     // default value does not harm here
     private final StringProperty biocuratorId = new SimpleStringProperty(this, "biocuratorId", "");
@@ -42,7 +43,6 @@ public final class OptionalResources {
 
 
     public OptionalResources() {
-
     }
 
     public static Ontology deserializeOntology(File ontologyPath) throws IOException {
@@ -63,6 +63,19 @@ public final class OptionalResources {
 
     public void setOntologyPath(File ontologyPath) {
         this.ontologyPath = ontologyPath;
+        writeOntologyPathToProperties();
+        if (ontology.isNull().get()) {
+            try {
+                initializeOntologyFromFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    private void writeOntologyPathToProperties() {
+        Properties properties;
     }
 
     public String getBiocuratorId() {
@@ -92,6 +105,11 @@ public final class OptionalResources {
 
     public ObjectProperty<Ontology> ontologyProperty() {
         return ontology;
+    }
+
+    public void initializeOntologyFromFile() throws IOException {
+        Ontology o = deserializeOntology(this.ontologyPath);
+        setOntology(o);
     }
 
 

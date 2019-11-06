@@ -48,8 +48,7 @@ public class PhenopacketExporter {
         this.phenotypes = model.getPhenotypes();
         this.hasVcf = model.hasVcf();
         if (model.hasVcf()) {
-            String path = model.getVcfPath();
-            this.vcfPath = path.endsWith("json") ? path : String.format("%s.jsom",path);
+            this.vcfPath = model.getVcfPath();
             this.genomeAssembly = model.getGenomeAssembly();
         } else {
             this.vcfPath = null;
@@ -140,7 +139,7 @@ public class PhenopacketExporter {
             if (sex.equals("MALE")) {
                 builder.setSex(Sex.MALE);
             } else if (sex.equals("FEMALE")) {
-                builder.setSex(Sex.OTHER_SEX);
+                builder.setSex(Sex.FEMALE);
             }
         }
         return builder.build();

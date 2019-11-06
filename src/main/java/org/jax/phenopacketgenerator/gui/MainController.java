@@ -1,6 +1,7 @@
 package org.jax.phenopacketgenerator.gui;
 
 
+import com.github.jsonldjava.utils.Obj;
 import com.google.common.collect.ImmutableList;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -29,9 +30,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -58,7 +59,7 @@ public class MainController {
 
     private final URL scigraphMiningUrl;
 
-   // private final Ontology ontology;
+   private Ontology ontology = null;
 
     String hpoVersion="n/a";
     /** valid assemblies for VCF file. */
@@ -80,6 +81,9 @@ public class MainController {
 
     @FXML
     private Button hpoTextMiningButton;
+
+    @FXML
+    private Button exportPhenopacketButton;
 
     @FXML
     private Label phenotypeSummaryLabel;
@@ -107,13 +111,21 @@ public class MainController {
     @FXML
     private Label statusLabel;
 
+    private final File homeDirectory;
+
+    private final Path configFilePath;
+
 
     @Autowired
-    public MainController(HpoTextMining mining, OptionalResources optionalResources,
-                          Properties properties, ExecutorService executorService,
+    public MainController(HpoTextMining mining,
+                          OptionalResources optionalResources,
+                          Properties properties,
+                          ExecutorService executorService,
                           URL scigraphMiningUrl,
-                          String phenopacketsVersion, String ecoVersion,
-                          File appHomeDir) {
+                          String phenopacketsVersion,
+                          String ecoVersion,
+                          File appHomeDir,
+                          Path configFilePath) {
         this.mining = mining;
         this.optionalResources = optionalResources;
         this.properties = properties;
@@ -124,7 +136,9 @@ public class MainController {
         this.isoAge = new SimpleStringProperty(this, "isoAge", null);
         this.phenopacketsVersion = phenopacketsVersion;
         this.ecoVersion = ecoVersion;
-
+        this.homeDirectory = appHomeDir;
+        this.configFilePath = configFilePath;
+        setHpoFromPropertiesIfPossible();
     }
 
     public void initialize() {
@@ -145,17 +159,46 @@ public class MainController {
         Tooltip agett = new Tooltip("Enter Age is ISO TODO format, e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days");
         ageTextfield.setTooltip(agett);
         this.hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
+        this.exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
         optionalResources.ontologyProperty().addListener( (a,oldval,newval) -> {
             if (newval == null) {
-                this.statusLabel.setText("Need to download hp.obo (see Edit menu)");
-                this.statusLabel.setStyle("--fx-text-color:red");
+                setHpoStatus(false);
             } else {
-                this.statusLabel.setText("");
+                setHpoStatus(true);
             }
         });
         if (optionalResources.ontologyProperty().isNull().get()) {
-            this.statusLabel.setText("  Need to download hp.obo (see Edit menu)");
-            this.statusLabel.setStyle("--fx-text-fill:red");
+            setHpoStatus(false);
+        }
+    }
+
+
+    private void setHpoFromPropertiesIfPossible() {
+        if (ontology != null) return;
+        String hpoOboPath = null;
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(this.configFilePath.toFile()));
+            String line;
+            while ((line = br.readLine())!= null) {
+                if (line.startsWith("#")) continue;
+                String [] KV = line.split(":");
+                String key = KV[0].trim();
+                if (key.equals("hp.obo.path")) {
+                    hpoOboPath = KV[1].trim();
+                }
+            }
+            br.close();
+            if (hpoOboPath != null) {
+                this.hpoAbsolutePath = hpoOboPath;
+                optionalResources.setOntologyPath(new File(hpoOboPath));
+                optionalResources.initializeOntologyFromFile();
+                this.ontology = optionalResources.getOntology();
+                this.hpoVersion = ontology.getMetaInfo().get("version");
+                LOGGER.info("Imported hpo file from {}", this.hpoAbsolutePath);
+                setHpoStatus(true);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -180,7 +223,7 @@ public class MainController {
         String ppacketid = phenopacketId.getValue().isEmpty() ? "n/a" : phenopacketId.getValue();
         pgmodel.setProbandId(id);
         pgmodel.setPhenopacketId(ppacketid);
-        //String hpoVersion = this.ontology.getMetaInfo().getOrDefault("version","unknown HPO version");
+        String hpoVersion = this.ontology.getMetaInfo().getOrDefault("version","unknown HPO version");
         pgmodel.setHpoVersion(hpoVersion);
         pgmodel.setEcoVersion(this.ecoVersion);
         pgmodel.setPhenopacketVersion(this.phenopacketsVersion);
@@ -192,6 +235,7 @@ public class MainController {
         }
         String sx = this.sexComboBox.getValue();
         if (! sx.equals("UNKNOWN")) {
+            LOGGER.error("Set sex to {}", sx);
             pgmodel.setSex(sx);
         }
         PhenopacketExporter exporter = new PhenopacketExporter(pgmodel);
@@ -228,8 +272,7 @@ public class MainController {
             }
             String observedSummary = (nObserved == 1) ? "1 observed term" : String.format("%d observed terms", nObserved);
             String excludedSummary = (nExcluded == 1) ? "1 excluded term" : String.format("%d excluded terms", nExcluded);
-
-            phenotypeSummaryLabel.setText(String.join("\n", observedSummary, excludedSummary));
+            phenotypeSummaryLabel.setText(String.join(", ", observedSummary, excludedSummary));
         };
     }
 
@@ -301,6 +344,20 @@ public class MainController {
         event.consume();
     }
 
+
+    @FXML
+    private void setHpoStatus(boolean downloaded) {
+        if (downloaded) {
+            final String message = String.format("  Ontology file: %s", this.hpoAbsolutePath );
+            Platform.runLater(() -> {
+                this.statusLabel.setText(message);
+            });
+        } else {
+            this.statusLabel.setText("  Need to download hp.obo (see Edit menu)");
+            this.statusLabel.setStyle("--fx-text-fill:red");
+        }
+    }
+
     @FXML
     void setPathToHpoObo() {
         FileChooser chooser = new FileChooser();
@@ -314,6 +371,22 @@ public class MainController {
             return;
         }
         this.hpoAbsolutePath = f.getAbsolutePath();
+        this.optionalResources.setOntologyPath(new File(this.hpoAbsolutePath));
+        setHpoStatus(true);
+        writeHpoToPropertiesFile();
+    }
+
+
+    private void writeHpoToPropertiesFile() {
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(this.configFilePath.toFile()));
+            writer.write("hp.obo.path:" + this.hpoAbsolutePath);
+            writer.close();
+            LOGGER.info("Wrote hp.obo path to {}",this.hpoAbsolutePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
     }
 
     @FXML
@@ -346,6 +419,7 @@ public class MainController {
     @FXML
     void exitMenuItemAction() {
         Platform.exit();
+        System.exit(0);
     }
 
     /**

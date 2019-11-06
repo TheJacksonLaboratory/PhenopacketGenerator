@@ -39,7 +39,6 @@ public final class StartupTask extends Task<Void> {
     public StartupTask(OptionalResources optionalResources, Properties properties) {
         this.optionalResources = optionalResources;
         this.properties = properties;
-
     }
 
 

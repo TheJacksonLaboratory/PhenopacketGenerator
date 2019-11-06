@@ -9,23 +9,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Configuration
 public class PhenopacketGeneratorConfiguration {
     private static final Logger LOGGER = LoggerFactory.getLogger(PhenopacketGeneratorConfiguration.class);
+
+    private static final String CONFIG_FILE_BASENAME = "phenopacketgen.config";
 
     @Bean
     public HpoTextMining hpoTextMining(URL sciGraphUrl, Ontology ontology) throws IOException {
@@ -51,6 +49,13 @@ public class PhenopacketGeneratorConfiguration {
     }
 
     @Bean
+    public Path configFilePath(File appHomeDir) {
+        String abs = appHomeDir.getAbsolutePath();
+        String path = String.format("%s%s%s", abs, File.separator, CONFIG_FILE_BASENAME );
+        return  Paths.get(path);
+    }
+
+    @Bean
     public ExecutorService executorService() {
        return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     }
@@ -69,6 +74,34 @@ public class PhenopacketGeneratorConfiguration {
     public String ecoVersion(Environment env) {
         return env.getProperty("eco.version");
     }
+
+
+
+    @Bean
+    public Properties properties() {
+        Properties properties = new Properties();
+        try {
+            String configpath = String.format("%s%s%s",appHomeDir(), File.separator, CONFIG_FILE_BASENAME );
+            BufferedReader reader = new BufferedReader(new FileReader(configpath));
+            String line;
+            while ((line = reader.readLine())!= null) {
+                if (line.startsWith("#") || line.isEmpty()) {
+                    continue;
+                }
+                String []KV = line.split(":");
+                if (KV.length == 2) {
+                    String key = KV[0].trim();
+                    String value = KV[1].trim();
+                    properties.setProperty(key,value);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return properties;
+    }
+
+
 
 
     /**
@@ -121,7 +154,7 @@ public class PhenopacketGeneratorConfiguration {
             try {
                 BufferedWriter writer = new BufferedWriter(new FileWriter(config));
                 writer.write("#Phenopacket Generator Configuration\n");
-                writer.write("hpo.path: ");
+                writer.write("hp.obo.path:");
                 writer.close();
             } catch (IOException e) {
                 e.printStackTrace();
