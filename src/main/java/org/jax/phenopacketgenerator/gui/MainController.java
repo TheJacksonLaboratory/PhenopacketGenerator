@@ -242,7 +242,6 @@ public class MainController {
         pgmodel.setIsoAge(isoAge.getValue());
         pgmodel.setSex(this.sexComboBox.getValue());
         try {
-            System.out.println("FOING QC");
             pgmodel.qc();
         } catch (PGException e) {
             PopUps.showException("Exception", "Error in phenopacket creation", e.getLocalizedMessage(), e);
@@ -271,6 +270,19 @@ public class MainController {
                     abspath.substring(L - 30));
         }
         this.exportPhenopacketLabel.setText(message);
+    }
+
+    /**
+     * Show the about message
+     */
+    public void aboutWindow(ActionEvent e) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Phenopacket Generator");
+        alert.setHeaderText("Phenopacket Generator");
+        String s = "Creating Phenopackets for Genomic Diagnostics.";
+        alert.setContentText(s);
+        alert.showAndWait();
+        e.consume();
     }
 
     @FXML

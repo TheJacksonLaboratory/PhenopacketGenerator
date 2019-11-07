@@ -2,6 +2,7 @@ package org.jax.phenopacketgenerator;
 
 import com.sun.javafx.css.StyleManager;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.JavaFXBuilderFactory;
 import javafx.scene.Parent;
@@ -49,6 +50,11 @@ public class Main extends Application {
         window.setTitle("Phenopacket Generator"); // todo -- set from properties file
         window.setScene(new Scene(rootNode));
         window.show();
+        window.setOnCloseRequest((windowEvent) -> {
+            Platform.exit();
+            System.exit(0);
+            }
+        );
         /*
         window.getIcons().add(new Image(getClass().getResourceAsStream("/img/app-icon.png")));
         */
