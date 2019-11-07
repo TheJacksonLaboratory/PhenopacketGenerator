@@ -2,22 +2,23 @@ package org.jax.phenopacketgenerator.gui;
 
 import javafx.concurrent.Task;
 import org.jax.phenopacketgenerator.OptionalResources;
+import org.jax.phenopacketgenerator.Utils;
+import org.monarchinitiative.phenol.ontology.data.Ontology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
  * Initialization of the GUI resources is being done here. Information from {@link Properties} parsed from
  * <code>hpo-case-annotator.properties</code> are being read and following resources are initialized:
  * <ul>
- * <li>Path to reference genome directory</li>
  * <li>Human phenotype ontology OBO file</li>
- * <li>Entrez gene file</li>
- * <li>Curated files directory</li>
- * <li>Biocurator ID</li>
- * <li>OMIM tab file</li>
  * </ul>
  * <p>
  * Changes made by user are stored for the next run in {@link org.jax.phenopacketgenerator.Main#stop()} method.
@@ -32,25 +33,19 @@ public final class StartupTask extends Task<Void> {
 
     private final OptionalResources optionalResources;
 
-    private final Properties properties;
+    private final Properties pgProperties;
 
 
-
-    public StartupTask(OptionalResources optionalResources, Properties properties) {
+    public StartupTask(OptionalResources optionalResources, Properties pgProperties) {
         this.optionalResources = optionalResources;
-        this.properties = properties;
+        this.pgProperties = pgProperties;
     }
-
 
     /**
      * Read {@link Properties} and initialize app resources in the {@link OptionalResources}:
      *
      * <ul>
      * <li>HPO ontology</li>
-     * <li>Entrez gene file</li>
-     * <li>Curated files directory</li>
-     * <li>Biocurator ID, and </li>
-     * <li>OMIM file</li>
      * </ul>
      *
      * @return nothing
@@ -58,21 +53,22 @@ public final class StartupTask extends Task<Void> {
      */
     @Override
     protected Void call() throws Exception {
-        // Curated files directory
-        // Biocurator ID
-        optionalResources.setBiocuratorId(properties.getProperty(OptionalResources.BIOCURATOR_ID_PROPERTY, ""));
         // HPO
-        String ontologyPath = properties.getProperty(OptionalResources.ONTOLOGY_PATH_PROPERTY);
-        if (ontologyPath != null && new File(ontologyPath).isFile()) {
-            File ontologyFile = new File(ontologyPath);
-            LOGGER.info("Loading HPO from file '{}'", ontologyFile.getAbsolutePath());
-            optionalResources.setOntology(OptionalResources.deserializeOntology(ontologyFile));
-            optionalResources.setOntologyPath(ontologyFile);
+        String ontologyPath = pgProperties.getProperty(OptionalResources.ONTOLOGY_PATH_PROPERTY);
+        if (ontologyPath != null) {
+            final Path hpOboPath = Paths.get(ontologyPath);
+            if (hpOboPath.toFile().isFile()) {
+                LOGGER.info("Loading HPO from file '{}'", hpOboPath);
+                try (final InputStream is = Files.newInputStream(hpOboPath)) {
+                    final Ontology ontology = Utils.deserializeOntology(is);
+                    optionalResources.setOntology(ontology);
+                } catch (IOException e) {
+                    LOGGER.warn("Error loading HPO file ", e);
+                }
+            }
         } else {
             LOGGER.info("Skipping loading HPO file since the location is unset");
         }
-
-        LOGGER.info("Done");
         return null;
     }
 }

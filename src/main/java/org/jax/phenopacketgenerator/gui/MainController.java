@@ -3,19 +3,17 @@ package org.jax.phenopacketgenerator.gui;
 
 import com.google.common.collect.ImmutableList;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.jax.phenopacketgenerator.OptionalResources;
+import org.jax.phenopacketgenerator.Utils;
 import org.jax.phenopacketgenerator.model.PGException;
 import org.jax.phenopacketgenerator.model.PgModel;
 import org.jax.phenopacketgenerator.model.PgOntologyClass;
@@ -30,9 +28,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -46,9 +48,9 @@ public class MainController {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainController.class);
     private static final String INVALID_STYLE = "-fx-border-color: red; -fx-border-width: 2px;";
     private static final String EMPTY_STYLE = "";
-    private final HpoTextMining mining;
+
     private final OptionalResources optionalResources;
-    private final Properties properties;
+    private final Properties pgProperties;
     private final ExecutorService executorService;
     private final URL scigraphMiningUrl;
     /**
@@ -62,23 +64,20 @@ public class MainController {
     private final ObservableList<PgOntologyClass> phenotypes = FXCollections.observableList(new ArrayList<>());
     private final String phenopacketsVersion;
     private final String ecoVersion;
-    private String biocuratorID;
-    private final StringProperty probandId;
-    private final StringProperty phenopacketId;
-    private final StringProperty isoAge;
-    private final File homeDirectory;
-    private final Path configFilePath;
+
     @FXML
-    public StackPane miningbox;
+    public AnchorPane contentPane;
+
+    @FXML
+    TextField ageTextfield;
+
     @FXML
     private ComboBox<String> genomeBuildComboBox;
     @FXML
     private ComboBox<String> sexComboBox;
-    @FXML
-    TextField ageTextfield;
+
     private String vcfFileAbsolutePath = null;
-    private String hpoAbsolutePath = null;
-    private Ontology ontology = null;
+
     @FXML
     private Button hpoTextMiningButton;
     @FXML
@@ -98,28 +97,22 @@ public class MainController {
 
 
     @Autowired
-    public MainController(HpoTextMining mining,
-                          OptionalResources optionalResources,
-                          Properties properties,
+    public MainController(OptionalResources optionalResources,
+                          Properties pgProperties,
                           ExecutorService executorService,
                           URL scigraphMiningUrl,
                           String phenopacketsVersion,
-                          String ecoVersion,
-                          File appHomeDir,
-                          Path configFilePath) {
-        this.mining = mining;
+                          String ecoVersion) {
         this.optionalResources = optionalResources;
-        this.properties = properties;
+        this.pgProperties = pgProperties;
         this.executorService = executorService;
         this.scigraphMiningUrl = scigraphMiningUrl;
-        this.probandId = new SimpleStringProperty(this, "probandId", null);
-        this.phenopacketId = new SimpleStringProperty(this, "phenopacketId", null);
-        this.isoAge = new SimpleStringProperty(this, "isoAge", null);
         this.phenopacketsVersion = phenopacketsVersion;
         this.ecoVersion = ecoVersion;
-        this.homeDirectory = appHomeDir;
-        this.configFilePath = configFilePath;
-        setHpoFromPropertiesIfPossible();
+
+        // run the initialization task on separate thread
+        StartupTask task = new StartupTask(optionalResources, pgProperties);
+        this.executorService.submit(task);
     }
 
     /**
@@ -167,78 +160,40 @@ public class MainController {
     }
 
     public void initialize() {
-        //miningbox.getChildren().add(mining.getMainParent());
-        StartupTask task = new StartupTask(optionalResources, properties);
-        executorService.submit(task);
         // generate phenotype summary text
         phenotypes.addListener(makePhenotypeSummaryLabel(phenotypes, phenotypeSummaryLabel));
         genomeBuildComboBox.getItems().addAll(assemblies);
         sexComboBox.getItems().addAll(sexValues);
         sexComboBox.setValue("UNKNOWN");
-        probandId.bind(probandIdTextfield.textProperty());
-        phenopacketId.bind(phenopacketIdTextfield.textProperty());
-        isoAge.bindBidirectional(ageTextfield.textProperty());
         probandIdTextfield.setPromptText("ID for proband/patient");
         phenopacketIdTextfield.setPromptText("ID for Phenopacket");
         ageTextfield.setPromptText("PxxYyyMzzD");
         Tooltip agett = new Tooltip("Enter Age is ISO TODO format, e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days");
         ageTextfield.setTooltip(agett);
-        this.hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
-        this.exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
-        optionalResources.ontologyProperty().addListener((a, oldval, newval) -> {
-            if (newval == null) {
-                setHpoStatus(false);
-            } else {
-                setHpoStatus(true);
-            }
-        });
-        if (optionalResources.ontologyProperty().isNull().get()) {
-            setHpoStatus(false);
-        }
+        hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
+        exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
     }
 
-    private void setHpoFromPropertiesIfPossible() {
-        Properties properties = new Properties();
-        if (ontology != null) return;
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(this.configFilePath.toFile()));
-            properties.load(br);
-            br.close();
-            if (properties.getProperty("hp.obo.path") != null) {
-                this.hpoAbsolutePath = properties.getProperty("hp.obo.path");
-                optionalResources.setOntologyPath(new File(this.hpoAbsolutePath));
-                optionalResources.initializeOntologyFromFile();
-                this.ontology = optionalResources.getOntology();
-                LOGGER.info("Imported hpo file from {}", this.hpoAbsolutePath);
-                setHpoStatus(true);
-            }
-            if (properties.getProperty("biocurator.id") != null) {
-                this.optionalResources.setBiocuratorId(properties.getProperty("biocurator.id"));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     @FXML
     void exportPhenopacket() {
-        PgModel pgmodel = new PgModel(this.phenotypes);
-        if (this.vcfFileAbsolutePath != null) {
-            pgmodel.setVcfPath(this.vcfFileAbsolutePath);
+        PgModel pgmodel = new PgModel(phenotypes);
+        if (vcfFileAbsolutePath != null) {
+            pgmodel.setVcfPath(vcfFileAbsolutePath);
             String assembly = genomeBuildComboBox.getValue() == null ? "hg19" : genomeBuildComboBox.getValue();
             pgmodel.setGenomeAssembly(assembly);
         }
-        pgmodel.setBiocurator(this.optionalResources.getBiocuratorId());
-        String id = probandId.getValue();//.isEmpty() ? "n/a" : probandId.getValue();
-        String ppacketid = phenopacketId.getValue();//.isEmpty() ? "n/a" : phenopacketId.getValue();
+        pgmodel.setBiocurator(pgProperties.getProperty(OptionalResources.BIOCURATOR_ID_PROPERTY, "N/A"));
+        String id = probandIdTextfield.getText();
+        String ppacketid = phenopacketIdTextfield.getText();
         pgmodel.setProbandId(id);
         pgmodel.setPhenopacketId(ppacketid);
-        String hpoVersion = this.optionalResources.getOntology().getMetaInfo().getOrDefault("version", "unknown HPO version");
+        String hpoVersion = optionalResources.getOntology().getMetaInfo().getOrDefault("version", "unknown HPO version");
         pgmodel.setHpoVersion(hpoVersion);
-        pgmodel.setEcoVersion(this.ecoVersion);
+        pgmodel.setEcoVersion(ecoVersion);
         pgmodel.setPhenopacketVersion(this.phenopacketsVersion);
-        pgmodel.setIsoAge(isoAge.getValue());
-        pgmodel.setSex(this.sexComboBox.getValue());
+        pgmodel.setIsoAge(ageTextfield.getText());
+        pgmodel.setSex(sexComboBox.getValue());
         try {
             pgmodel.qc();
         } catch (PGException e) {
@@ -248,7 +203,7 @@ public class MainController {
 
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Export as Phenopacket (JSON) file");
-        File f = chooser.showSaveDialog(null);
+        File f = chooser.showSaveDialog(exportPhenopacketButton.getScene().getWindow());
         if (f == null) {
             PopUps.showInfoMessage("Could not retrieve path to save phenopacket", "Warning");
             return;
@@ -273,14 +228,14 @@ public class MainController {
     /**
      * Show the about message
      */
-    public void aboutWindow(ActionEvent e) {
+    @FXML
+    public void aboutWindow() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Phenopacket Generator");
         alert.setHeaderText("Phenopacket Generator");
         String s = "Creating Phenopackets for Genomic Diagnostics.";
         alert.setContentText(s);
         alert.showAndWait();
-        e.consume();
     }
 
     @FXML
@@ -324,33 +279,20 @@ public class MainController {
      * Runs after user clicks Settings/Set biocurator MenuItem and asks user to provide the ID.
      */
     @FXML
-    void setBiocuratorMenuItemClicked(ActionEvent event) {
+    void setBiocuratorMenuItemClicked() {
+        String defaultId = pgProperties.getProperty(OptionalResources.BIOCURATOR_ID_PROPERTY, "e.g. HPO:rrabbit");
         String biocurator = PopUps.getStringFromUser("Biocurator ID",
-                "e.g. HPO:rrabbit", "Enter your biocurator ID:");
+                defaultId, "Enter your biocurator ID:");
         if (biocurator != null) {
-            optionalResources.setBiocuratorId(biocurator);
+            pgProperties.setProperty(OptionalResources.BIOCURATOR_ID_PROPERTY, biocurator);
             PopUps.showInfoMessage(String.format("Biocurator ID set to \n\"%s\"",
                     biocurator), "Success");
         } else {
             PopUps.showInfoMessage("Biocurator ID not set.",
                     "Information");
         }
-        event.consume();
     }
 
-    @FXML
-    private void setHpoStatus(boolean downloaded) {
-        if (downloaded) {
-            final String message = String.format("  Ontology file: %s", this.hpoAbsolutePath);
-            Platform.runLater(() -> {
-                this.statusLabel.setText(message);
-                this.statusLabel.setStyle(EMPTY_STYLE);
-            });
-        } else {
-            this.statusLabel.setText("  Need to download hp.obo (see Edit menu)");
-            this.statusLabel.setStyle(INVALID_STYLE);
-        }
-    }
 
     @FXML
     void setPathToHpoObo() {
@@ -358,27 +300,29 @@ public class MainController {
         chooser.setTitle("Set path to hp.obo file");
         FileChooser.ExtensionFilter extOBO = new FileChooser.ExtensionFilter("OBO file (*.obo)", "*.obo");
         chooser.getExtensionFilters().add(extOBO);
-        File f = chooser.showOpenDialog(null);
+        File f = chooser.showOpenDialog(contentPane.getScene().getWindow());
         if (f == null) {
             LOGGER.error("Unable to obtain path to OBO file");
             PopUps.showInfoMessage("Unable to obtain path to OBO file", "Error");
             return;
         }
-        this.hpoAbsolutePath = f.getAbsolutePath();
-        this.optionalResources.setOntologyPath(new File(this.hpoAbsolutePath));
-        setHpoStatus(true);
-        writeHpoToPropertiesFile();
-    }
-
-    private void writeHpoToPropertiesFile() {
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(this.configFilePath.toFile()));
-            writer.write("hp.obo.path:" + this.hpoAbsolutePath);
-            writer.close();
-            LOGGER.info("Wrote hp.obo path to {}", this.hpoAbsolutePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        final Path hpoPath = Paths.get(f.getAbsolutePath());
+        statusLabel.setText("Loading ontology...");
+        executorService.submit(() -> {
+            /*
+            Deserialize ontology and set it to optional resources. This should trigger enabling hpoTextMiningButton
+            that was disabled.
+             */
+            try (InputStream is = Files.newInputStream(hpoPath)) {
+                Ontology ontology = Utils.deserializeOntology(is);
+                optionalResources.setOntology(ontology);
+                // only store path to ontology if parsing went well
+                pgProperties.setProperty(OptionalResources.ONTOLOGY_PATH_PROPERTY, hpoPath.toFile().getAbsolutePath());
+                Platform.runLater(() -> statusLabel.setText("Ontology loaded"));
+            } catch (IOException e) {
+                LOGGER.warn("Error parsing OBO file at `{}`", hpoPath, e);
+            }
+        });
     }
 
     @FXML
@@ -389,7 +333,7 @@ public class MainController {
         FileChooser.ExtensionFilter extFilterVCFGZ = new FileChooser.ExtensionFilter("Compressed Variant Call Format file file (*.vcf.gz)", "*.vcf.gz");
 
         chooser.getExtensionFilters().addAll(extFilterVCF, extFilterVCFGZ);
-        File f = chooser.showOpenDialog(null);
+        File f = chooser.showOpenDialog(contentPane.getScene().getWindow());
         if (f == null) {
             LOGGER.error("Unable to obtain path to VCF file");
             PopUps.showInfoMessage("Unable to obtain path to VCF file", "Error");
@@ -411,7 +355,6 @@ public class MainController {
     @FXML
     void exitMenuItemAction() {
         Platform.exit();
-        System.exit(0);
     }
 
 }
