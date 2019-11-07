@@ -1,6 +1,10 @@
 package org.jax.phenopacketgenerator.model;
 
+import com.sun.javaws.exceptions.InvalidArgumentException;
+
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A POJO class that contains all of the data we need to export a Phenopacket
@@ -15,11 +19,14 @@ public class PgModel {
     private String vcfPath = null;
     private String genomeAssembly;
     private String biocurator = UNITIALIZED;
-    private String probandId;
-    private String phenopacketId;
+    private String probandId = UNITIALIZED;
+    private String phenopacketId = UNITIALIZED;
     private String phenopacketVersion = UNITIALIZED;
     private String isoAge = UNITIALIZED;
     private String sex = UNITIALIZED;
+
+    private String iso8601 = "^P(?=\\d|T\\d)(?:(\\d+)Y)?(?:(\\d+)M)?(?:(\\d+)([DW]))?";
+    private Pattern pattern = Pattern.compile(iso8601);
 
     public PgModel(List<PgOntologyClass> phenotypes) {
         this.phenotypes = phenotypes;
@@ -29,16 +36,7 @@ public class PgModel {
         return isoAge;
     }
 
-    public void setIsoAge(String isoAge)  throws IllegalArgumentException {
-        String s = isoAge;
-        if (! s.startsWith("P")) {
-            throw new IllegalArgumentException("Age string must begin with P");
-        }
-        s = s.substring(1);
-        if (! Character.isDigit(s.charAt(0)) ) {
-            throw new IllegalArgumentException("Malformed age string (expecting numberfollowing initial P): "+ isoAge);
-        }
-        // TODO use regex
+    public void setIsoAge(String isoAge) {
         this.isoAge = isoAge;
     }
 
@@ -133,7 +131,30 @@ public class PgModel {
     }
 
 
-
+    public void qc() throws PGException {
+        if (this.phenopacketId.equals(UNITIALIZED) || phenopacketId.isEmpty() || phenopacketId.length()<1) {
+            throw new PGException("Phenopacket ID is not initialized");
+        } else {
+            System.out.println("phenopacket id is "+phenopacketId);
+        }
+        if (this.probandId.equals(UNITIALIZED) || probandId.isEmpty()) {
+            throw new PGException("Proband ID is not initialized");
+        }
+        if (this.isoAge.equals(UNITIALIZED) || this.isoAge.isEmpty()) {
+            // OK, not required
+        } else {
+            Matcher m = pattern.matcher(isoAge);
+            if (! m.find()) {
+                throw new PGException("Invalid age string: " + isoAge);
+            }
+        }
+        if (this.phenotypes.isEmpty()) {
+            throw new PGException("At least one phenotype term required!");
+        }
+        if (biocurator.equals(UNITIALIZED) || biocurator.isEmpty()) {
+            throw new PGException("Biocurator ID not unitialized (use Edit menu)");
+        }
+    }
 
 
 }
