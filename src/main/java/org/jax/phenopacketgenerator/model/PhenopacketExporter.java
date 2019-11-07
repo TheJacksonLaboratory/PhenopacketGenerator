@@ -109,7 +109,7 @@ public class PhenopacketExporter {
                 .addEvidence(Evidence.newBuilder()
                         .setEvidenceCode(TRACEABLE_AUTHOR_STATEMENT)
                         .setReference(ExternalReference.newBuilder()
-                                .setId(String.format("ID:todo")) // TODO
+                                .setId("ID:todo") // TODO
                                 .setDescription("Phenopacket created with PhenopacketGenerator")
                                 .build())
                         .build())

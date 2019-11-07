@@ -1,9 +1,7 @@
 package org.jax.phenopacketgenerator.gui;
 
 
-import com.github.jsonldjava.utils.Obj;
 import com.google.common.collect.ImmutableList;
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -73,9 +71,9 @@ public class MainController {
     @FXML
     public StackPane miningbox;
     @FXML
-    public ComboBox<String> genomeBuildComboBox;
+    private ComboBox<String> genomeBuildComboBox;
     @FXML
-    public ComboBox<String> sexComboBox;
+    private ComboBox<String> sexComboBox;
     @FXML
     TextField ageTextfield;
     private String vcfFileAbsolutePath = null;

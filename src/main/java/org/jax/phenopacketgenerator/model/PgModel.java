@@ -1,7 +1,5 @@
 package org.jax.phenopacketgenerator.model;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
-
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,8 +23,8 @@ public class PgModel {
     private String isoAge = UNITIALIZED;
     private String sex = UNITIALIZED;
 
-    private String iso8601 = "^P(?=\\d|T\\d)(?:(\\d+)Y)?(?:(\\d+)M)?(?:(\\d+)([DW]))?";
-    private Pattern pattern = Pattern.compile(iso8601);
+    private final String iso8601 = "^P(?=\\d|T\\d)(?:(\\d+)Y)?(?:(\\d+)M)?(?:(\\d+)([DW]))?";
+    private final Pattern pattern = Pattern.compile(iso8601);
 
     public PgModel(List<PgOntologyClass> phenotypes) {
         this.phenotypes = phenotypes;
@@ -132,7 +130,7 @@ public class PgModel {
 
 
     public void qc() throws PGException {
-        if (this.phenopacketId.equals(UNITIALIZED) || phenopacketId.isEmpty() || phenopacketId.length()<1) {
+        if (this.phenopacketId.equals(UNITIALIZED) || phenopacketId.isEmpty()) {
             throw new PGException("Phenopacket ID is not initialized");
         } else {
             System.out.println("phenopacket id is "+phenopacketId);
