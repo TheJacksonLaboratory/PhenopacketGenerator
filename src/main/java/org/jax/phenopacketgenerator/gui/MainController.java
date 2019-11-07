@@ -115,6 +115,10 @@ public class MainController {
 
     private final Path configFilePath;
 
+    private static final String INVALID_STYLE = "-fx-border-color: red; -fx-border-width: 2px;";
+
+    private static final String EMPTY_STYLE = "";
+
 
     @Autowired
     public MainController(HpoTextMining mining,
@@ -343,10 +347,11 @@ public class MainController {
             final String message = String.format("  Ontology file: %s", this.hpoAbsolutePath );
             Platform.runLater(() -> {
                 this.statusLabel.setText(message);
+                this.statusLabel.setStyle(EMPTY_STYLE);
             });
         } else {
             this.statusLabel.setText("  Need to download hp.obo (see Edit menu)");
-            this.statusLabel.setStyle("--fx-text-fill:red");
+            this.statusLabel.setStyle(INVALID_STYLE);
         }
     }
 
