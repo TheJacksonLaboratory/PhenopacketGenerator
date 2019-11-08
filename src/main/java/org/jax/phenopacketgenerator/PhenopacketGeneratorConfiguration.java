@@ -1,17 +1,17 @@
 package org.jax.phenopacketgenerator;
 
-import org.monarchinitiative.hpotextmining.gui.controller.HpoTextMining;
-import org.monarchinitiative.phenol.io.OntologyLoader;
-import org.monarchinitiative.phenol.ontology.data.Ontology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -21,17 +21,8 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class PhenopacketGeneratorConfiguration {
+    public static final String CONFIG_FILE_BASENAME = "phenopacket_generator.properties";
     private static final Logger LOGGER = LoggerFactory.getLogger(PhenopacketGeneratorConfiguration.class);
-
-    private static final String CONFIG_FILE_BASENAME = "phenopacketgen.config";
-
-    @Bean
-    public HpoTextMining hpoTextMining(URL sciGraphUrl, Ontology ontology) throws IOException {
-        return HpoTextMining.builder()
-                .withSciGraphUrl(sciGraphUrl)
-                .withOntology(ontology)
-                .build();
-    }
 
     @Bean
     public URL sciGraphUrl(Environment environment) throws MalformedURLException {
@@ -39,25 +30,8 @@ public class PhenopacketGeneratorConfiguration {
     }
 
     @Bean
-    public Ontology ontology(Path hpOboPath) {
-        return OntologyLoader.loadOntology(hpOboPath.toFile());
-    }
-
-    @Bean
-    public Path hpOboPath(Environment environment) {
-        return Paths.get(Objects.requireNonNull(environment.getProperty("hp.obo.path")));
-    }
-
-    @Bean
-    public Path configFilePath(File appHomeDir) {
-        String abs = appHomeDir.getAbsolutePath();
-        String path = String.format("%s%s%s", abs, File.separator, CONFIG_FILE_BASENAME );
-        return  Paths.get(path);
-    }
-
-    @Bean
     public ExecutorService executorService() {
-       return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     }
 
     @Bean
@@ -65,9 +39,9 @@ public class PhenopacketGeneratorConfiguration {
         return new OptionalResources();
     }
 
-    @Bean(name = "phenopacketsVersion")
+    @Bean
     public String phenopacketsVersion(Environment env) {
-        return env.getProperty("phenopacket.version");
+        return env.getProperty(Main.PG_PHENOPACKET_VERSION_PROP_KEY);
     }
 
     @Bean(name = "ecoVersion")
@@ -76,76 +50,73 @@ public class PhenopacketGeneratorConfiguration {
     }
 
 
-
+    /**
+     * Properties meant to store user configuration within the app's directory
+     *
+     * @param configFilePath path where the properties file is supposed to be present (it's ok if the file itself doesn't exist).
+     * @return {@link Properties} with user configuration
+     */
     @Bean
-    public Properties properties() {
+    public Properties pgProperties(Path configFilePath) {
         Properties properties = new Properties();
-        try {
-            String configpath = String.format("%s%s%s",appHomeDir(), File.separator, CONFIG_FILE_BASENAME );
-            BufferedReader reader = new BufferedReader(new FileReader(configpath));
-            properties.load(reader);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (configFilePath.toFile().isFile()) {
+            try (final InputStream is = Files.newInputStream(configFilePath)) {
+                properties.load(is);
+            } catch (IOException e) {
+                LOGGER.warn("Error during reading `{}`", configFilePath, e);
+            }
         }
         return properties;
     }
 
-
-
+    @Bean
+    public Path configFilePath(Path appHomeDir) {
+        return appHomeDir.resolve(CONFIG_FILE_BASENAME);
+    }
 
     /**
-     * Get path to application home directory, where HpoCaseAnnotator stores global settings and files. The path depends
+     * Get path to application home directory, where PhenopacketGenerator stores global settings and files. The path depends
      * on underlying operating system.
      * <p>
-     * A hidden <code>.hpo-case-annotator</code>  directory will be created in user's home dir in Linux and OSX.
+     * A hidden <code>.phenopacketGenerator</code>  directory will be created in user's home dir in Linux and OSX.
      * <p>
-     * App home directory for Windows' or unknown OS users will be the <code>HpoCaseAnnotator</code> directory in their
+     * App home directory for Windows' or unknown OS users will be the <code>PhenopacketGenerator</code> directory in their
      * home dir.
      *
-     * @return {@link File} with path to application home directory
+     * @return {@link Path} to application home directory
      */
     @Bean
-    public File appHomeDir() throws IOException {
+    public Path appHomeDir() throws IOException {
         String osName = System.getProperty("os.name").toLowerCase();
         // we want to have one resource directory for release version and another for snapshots
 
-
-        File appHomeDir;
+        Path homeDir = Paths.get(System.getProperty("user.home"));
+        Path appHomeDir;
         if (osName.contains("nix") || osName.contains("nux") || osName.contains("aix")) { // Unix
-            appHomeDir = new File(System.getProperty("user.home") + File.separator + ".phenopacketGenerator" );
+            appHomeDir = homeDir.resolve(".phenopacketGenerator");
         } else if (osName.contains("win")) { // Windows
-            appHomeDir = new File(System.getProperty("user.home") + File.separator + "PhenopacketGenerator" );
+            appHomeDir = homeDir.resolve("PhenopacketGenerator");
         } else if (osName.contains("mac")) { // OsX
-            appHomeDir = new File(System.getProperty("user.home") + File.separator + ".phenopacketGenerator");
+            appHomeDir = homeDir.resolve(".phenopacketGenerator");
         } else { // unknown platform
-            appHomeDir = new File(System.getProperty("user.home") + File.separator + "phenopacketGenerator" );
+            appHomeDir = homeDir.resolve("phenopacketGenerator");
         }
 
-        if (!appHomeDir.exists()) {
-            LOGGER.debug("App home directory does not exist at {}", appHomeDir.getAbsolutePath());
-            if (!appHomeDir.getParentFile().exists() && !appHomeDir.getParentFile().mkdirs()) {
+        final File appHomeDirFile = appHomeDir.toFile();
+        if (!appHomeDirFile.exists()) {
+            LOGGER.debug("App home directory does not exist at {}", appHomeDirFile.getAbsolutePath());
+            if (!appHomeDirFile.getParentFile().exists() && !appHomeDirFile.getParentFile().mkdirs()) {
                 LOGGER.warn("Unable to create parent directory for app home at {}",
-                        appHomeDir.getParentFile().getAbsolutePath());
+                        appHomeDirFile.getParentFile().getAbsolutePath());
                 throw new IOException("Unable to create parent directory for app home at " +
-                        appHomeDir.getParentFile().getAbsolutePath());
+                        appHomeDirFile.getParentFile().getAbsolutePath());
             } else {
-                if (!appHomeDir.mkdir()) {
-                    LOGGER.warn("Unable to create app home directory at {}", appHomeDir.getAbsolutePath());
-                    throw new IOException("Unable to create app home directory at " + appHomeDir.getAbsolutePath());
+                if (!appHomeDirFile.mkdir()) {
+                    LOGGER.warn("Unable to create app home directory at {}", appHomeDir);
+                    throw new IOException("Unable to create app home directory at " + appHomeDir);
                 } else {
-                    LOGGER.info("Created app home directory at {}", appHomeDir.getAbsolutePath());
+                    LOGGER.info("Created app home directory at {}", appHomeDir);
                 }
-            }
-        }
-        String configpath = String.format("%s%s%s",appHomeDir, File.separator, "phenopacketgen.config" );
-        File config = new File(configpath);
-        if (! config.exists()) {
-            try { // initialize the file
-                BufferedWriter writer = new BufferedWriter(new FileWriter(config));
-                writer.write("#Phenopacket Generator Configuration\n");
-                writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
         return appHomeDir;

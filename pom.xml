@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.jax.phenopacketgenerator</groupId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <artifactId>phenopacketgenerator</artifactId>
 
     <parent>
@@ -26,14 +26,6 @@
         <phenol.version>1.4.1</phenol.version>
         <testfx.version>4.0.15-alpha</testfx.version>
     </properties>
-
-  <!--  <scm>
-        <connection>scm:git:git@github.com:monarch-initiative/HpoCaseAnnotator.git</connection>
-        <developerConnection>scm:git:git@github.com:monarch-initiative/HpoCaseAnnotator.git</developerConnection>
-        <url>https://github.com/monarch-initiative/HpoCaseAnnotator</url>
-        <tag>v@{project.version}</tag>
-    </scm>
-    -->
 
     <build>
         <finalName>Phenopacket-Generator-${project.version}</finalName>
