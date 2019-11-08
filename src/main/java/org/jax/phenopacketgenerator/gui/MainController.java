@@ -47,6 +47,7 @@ public class MainController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MainController.class);
     private static final String INVALID_STYLE = "-fx-border-color: red; -fx-border-width: 2px;";
+    private static final String VALID_STYLE = "-fx-border-color: green; -fx-border-width: 2px;";
     private static final String EMPTY_STYLE = "";
 
     private final OptionalResources optionalResources;
@@ -168,10 +169,17 @@ public class MainController {
         probandIdTextfield.setPromptText("ID for proband/patient");
         phenopacketIdTextfield.setPromptText("ID for Phenopacket");
         ageTextfield.setPromptText("PxxYyyMzzD");
-        Tooltip agett = new Tooltip("Enter Age is ISO TODO format, e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days");
+        Tooltip agett = new Tooltip("Enter Age is ISO 8601 format, e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days");
         ageTextfield.setTooltip(agett);
         hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
         exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
+        if (optionalResources.ontologyProperty().isNull().get()) {
+            statusLabel.setText("  Need to set path to hp.obo file (See edit menu)");
+            statusLabel.setStyle(INVALID_STYLE);
+        } else {
+            statusLabel.setText("  Ontology loaded");
+            statusLabel.setStyle(VALID_STYLE);
+        }
     }
 
 
@@ -318,7 +326,7 @@ public class MainController {
                 optionalResources.setOntology(ontology);
                 // only store path to ontology if parsing went well
                 pgProperties.setProperty(OptionalResources.ONTOLOGY_PATH_PROPERTY, hpoPath.toFile().getAbsolutePath());
-                Platform.runLater(() -> statusLabel.setText("Ontology loaded"));
+                Platform.runLater(() -> { statusLabel.setText("Ontology loaded"); statusLabel.setStyle(VALID_STYLE); } );
             } catch (IOException e) {
                 LOGGER.warn("Error parsing OBO file at `{}`", hpoPath, e);
             }
