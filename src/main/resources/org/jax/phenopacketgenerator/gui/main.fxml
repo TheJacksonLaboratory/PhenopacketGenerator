@@ -132,7 +132,11 @@
    </top>
    <bottom>
        <HBox prefHeight="25.0" prefWidth="600.0" BorderPane.alignment="CENTER">
-           <Label fx:id="statusLabel" />
+           <Label fx:id="statusLabel">
+               <HBox.margin>
+                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+               </HBox.margin>
+           </Label>
        </HBox>
    </bottom>
 </BorderPane>

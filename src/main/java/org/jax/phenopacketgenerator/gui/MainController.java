@@ -110,10 +110,6 @@ public class MainController {
         this.scigraphMiningUrl = scigraphMiningUrl;
         this.phenopacketsVersion = phenopacketsVersion;
         this.ecoVersion = ecoVersion;
-
-        // run the initialization task on separate thread
-        StartupTask task = new StartupTask(optionalResources, pgProperties);
-        this.executorService.submit(task);
     }
 
     /**
@@ -173,13 +169,22 @@ public class MainController {
         ageTextfield.setTooltip(agett);
         hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
         exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
-        if (optionalResources.ontologyProperty().isNull().get()) {
-            statusLabel.setText("  Need to set path to hp.obo file (See edit menu)");
-            statusLabel.setStyle(INVALID_STYLE);
-        } else {
-            statusLabel.setText("  Ontology loaded");
-            statusLabel.setStyle(VALID_STYLE);
-        }
+        optionalResources.ontologyProperty().isNull().addListener((obs, oldValue, newValue) -> {
+            if (newValue) {
+                statusLabel.setText("Need to set path to hp.obo file (See edit menu)");
+                statusLabel.setStyle(INVALID_STYLE);
+            } else {
+                statusLabel.setText("Ontology loaded");
+                statusLabel.setStyle(VALID_STYLE);
+            }
+        });
+
+        // run the initialization task on a separate thread
+        StartupTask task = new StartupTask(optionalResources, pgProperties);
+        statusLabel.textProperty().bind(task.messageProperty());
+        // we don't have to watch the task's status after completion
+        task.setOnSucceeded(e -> statusLabel.textProperty().unbind());
+        executorService.submit(task);
     }
 
 
