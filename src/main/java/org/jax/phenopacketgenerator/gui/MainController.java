@@ -270,8 +270,6 @@ public class MainController {
             return;
         }
         PhenopacketExporter exporter = new PhenopacketExporter(pgmodel);
-        System.out.println("[TODO] Save complete Phenopacket to this file: " + f.getAbsolutePath());
-
         exporter.export(f);
         String abspath = f.getAbsolutePath();
         int L = abspath.length();
