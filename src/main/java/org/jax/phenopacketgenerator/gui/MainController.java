@@ -140,9 +140,6 @@ public class MainController {
         sexComboBox.setValue("UNKNOWN");
         probandIdTextfield.setPromptText("ID for proband/patient");
         phenopacketIdTextfield.setPromptText("ID for Phenopacket");
-        ageTextfield.setPromptText("PxxYyyMzzD");
-        Tooltip agett = new Tooltip("Enter Age is ISO 8601 format, e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days");
-        ageTextfield.setTooltip(agett);
         hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
         exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
         optionalResources.ontologyProperty().isNull().addListener((obs, oldValue, newValue) -> {
