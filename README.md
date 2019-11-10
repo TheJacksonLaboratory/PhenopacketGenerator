@@ -49,7 +49,8 @@ the data before saving the file.
 The following fields can be entered.
 
 * Sex (optional)
-* Age (optional). Enter age information using the  [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format, 
+* Age (optional). Use one or more of the pull down menus to enter the age in years, months, or days. The
+age information will be stored  using the  [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format, 
 e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days
 * Phenopacket ID (required). This ID cannot be empty but can be any user-defined string
 * Proband ID (required). This ID cannot be empty but can be any user-defined string

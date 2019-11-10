@@ -25,6 +25,8 @@ public class PhenopacketExporter {
 
     // source https://bioportal.bioontology.org/ontologies/ECO/?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FECO_0000033&jump_to_nav=true
     private static final OntologyClass TRACEABLE_AUTHOR_STATEMENT = ontologyClass("ECO:0000033", "author statement supported by traceable reference");
+    private static final OntologyClass AUTHOR_STATEMENT_USED_IN_MANUAL_ASSERTION =
+            ontologyClass("ECO:0000302", "author statement used in manual assertion");
     private final static String UNITIALIZED = "Uninitialized";
 
     private final List<PgOntologyClass> phenotypes;
@@ -40,6 +42,7 @@ public class PhenopacketExporter {
 
     private final String sex;
     private final String age;
+
 
 
 
@@ -101,18 +104,23 @@ public class PhenopacketExporter {
                 .build();
     }
 
+    /**
+     * By default, we use the evidence code AUTHOR_STATEMENT_USED_IN_MANUAL_ASSERTION
+     * for all assertions, because we do not know anything specific about the evidence
+     * that the biocurator has to make the assertion.
+     * @return An Evidence message
+     */
+    private static Evidence evidence() {
+        return Evidence.newBuilder()
+                .setEvidenceCode(AUTHOR_STATEMENT_USED_IN_MANUAL_ASSERTION).build();
+    }
+
 
     private static Function<PgOntologyClass, PhenotypicFeature> hcaPhenotypeToPhenopacketPhenotype() {
         return oc -> PhenotypicFeature.newBuilder()
                 .setType(ontologyClass(oc.getId(), oc.getLabel()))
                 .setNegated(oc.getNotObserved())
-                .addEvidence(Evidence.newBuilder()
-                        .setEvidenceCode(TRACEABLE_AUTHOR_STATEMENT)
-                        .setReference(ExternalReference.newBuilder()
-                                .setId("ID:todo") // TODO
-                                .setDescription("Phenopacket created with PhenopacketGenerator")
-                                .build())
-                        .build())
+                .addEvidence(evidence())
                 .build();
     }
 
@@ -146,6 +154,19 @@ public class PhenopacketExporter {
     }
 
 
+    private String getVcfUri() {
+        if (vcfPath.startsWith("file")){
+            return vcfPath;
+        } else if (this.vcfPath.startsWith("//")) {
+            return String.format("file:%s",this.vcfPath);
+        } else if (this.vcfPath.startsWith("/")) {
+            return String.format("file:/%s",this.vcfPath);
+        } else {
+            File f = new File(vcfPath);
+            return String.format("file://%s",f.getAbsolutePath());
+        }
+    }
+
 
     private Phenopacket encode() {
         Phenopacket.Builder builder = Phenopacket.newBuilder()
@@ -160,7 +181,7 @@ public class PhenopacketExporter {
             HtsFile hts = HtsFile.newBuilder()
                     .setHtsFormat(HtsFile.HtsFormat.VCF)
                     .setGenomeAssembly(this.genomeAssembly)
-                    .setUri(this.vcfPath)
+                    .setUri(getVcfUri())
                     .build();
             builder.addHtsFiles(hts);
         }
@@ -170,12 +191,10 @@ public class PhenopacketExporter {
 
 
     private MetaData metadata() {
-
         long millis = System.currentTimeMillis();
         Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)
                 .setNanos((int) ((millis % 1000) * 1000000)).build();
-
-        MetaData metaData = MetaData.newBuilder()
+        return MetaData.newBuilder()
                 .addResources(Resource.newBuilder()
                         .setId("hp")
                         .setName("human phenotype ontology")
@@ -196,7 +215,6 @@ public class PhenopacketExporter {
                 .setCreated(timestamp)
                 .setPhenopacketSchemaVersion(this.phenopacketVersion)
                 .build();
-        return metaData;
     }
 
 }

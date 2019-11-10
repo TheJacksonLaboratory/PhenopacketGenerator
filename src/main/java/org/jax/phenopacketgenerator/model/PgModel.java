@@ -9,19 +9,19 @@ import java.util.regex.Pattern;
  */
 public class PgModel {
 
-    private final static String UNITIALIZED = "Uninitialized";
+    private final static String EMPTY_STRING = "";
 
-    private String hpoVersion = UNITIALIZED;
-    private String ecoVersion = UNITIALIZED;
+    private String hpoVersion = EMPTY_STRING;
+    private String ecoVersion = EMPTY_STRING;
     private final List<PgOntologyClass> phenotypes;
     private String vcfPath = null;
     private String genomeAssembly;
-    private String biocurator = UNITIALIZED;
-    private String probandId = UNITIALIZED;
-    private String phenopacketId = UNITIALIZED;
-    private String phenopacketVersion = UNITIALIZED;
-    private String isoAge = UNITIALIZED;
-    private String sex = UNITIALIZED;
+    private String biocurator = EMPTY_STRING;
+    private String probandId = EMPTY_STRING;
+    private String phenopacketId = EMPTY_STRING;
+    private String phenopacketVersion = EMPTY_STRING;
+    private String isoAge = EMPTY_STRING;
+    private String sex = EMPTY_STRING;
 
     private final String iso8601 = "^P(?=\\d|T\\d)(?:(\\d+)Y)?(?:(\\d+)M)?(?:(\\d+)([DW]))?";
     private final Pattern pattern = Pattern.compile(iso8601);
@@ -39,11 +39,11 @@ public class PgModel {
     }
 
     public boolean hasSexData() {
-        return ! sex.equals(UNITIALIZED);
+        return ! sex.equals(EMPTY_STRING);
     }
 
     public boolean hasAgeData() {
-        return ! isoAge.equals(UNITIALIZED);
+        return isoAge != null && ! isoAge.equals(EMPTY_STRING);
     }
 
     public String getSex() {
@@ -130,15 +130,15 @@ public class PgModel {
 
 
     public void qc() throws PGException {
-        if (this.phenopacketId.equals(UNITIALIZED) || phenopacketId.isEmpty()) {
+        if (this.phenopacketId.equals(EMPTY_STRING) || phenopacketId.isEmpty()) {
             throw new PGException("Phenopacket ID is not initialized");
         } else {
             System.out.println("phenopacket id is "+phenopacketId);
         }
-        if (this.probandId.equals(UNITIALIZED) || probandId.isEmpty()) {
+        if (this.probandId.equals(EMPTY_STRING) || probandId.isEmpty()) {
             throw new PGException("Proband ID is not initialized");
         }
-        if (this.isoAge.equals(UNITIALIZED) || this.isoAge.isEmpty()) {
+        if (this.isoAge == null || this.isoAge.equals(EMPTY_STRING) || this.isoAge.isEmpty()) {
             // OK, not required
         } else {
             Matcher m = pattern.matcher(isoAge);
@@ -149,7 +149,7 @@ public class PgModel {
         if (this.phenotypes.isEmpty()) {
             throw new PGException("At least one phenotype term required!");
         }
-        if (biocurator.equals(UNITIALIZED) || biocurator.isEmpty()) {
+        if (biocurator == null || biocurator.equals(EMPTY_STRING) || biocurator.isEmpty()) {
             throw new PGException("Biocurator ID not unitialized (use Edit menu)");
         }
     }

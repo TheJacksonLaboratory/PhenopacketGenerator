@@ -58,6 +58,13 @@ public class MainController {
      * valid assemblies for VCF file.
      */
     private final List<String> assemblies = ImmutableList.of("hg19", "hg38", "hg39");
+
+    private final List<Integer> months = ImmutableList.of(1,2,3,4,5,6,7,8,9,10,11);
+    private final List<Integer> days;
+    private final List<Integer> years;
+
+    private final String EMPTY_STRING = "";
+
     /**
      * valid values for sex combobox
      */
@@ -69,11 +76,13 @@ public class MainController {
     @FXML
     public AnchorPane contentPane;
 
-    @FXML
-    TextField ageTextfield;
+   // @FXML
+    //TextField ageTextfield;
 
     @FXML
     private ComboBox<String> genomeBuildComboBox;
+    @FXML
+    private ComboBox<Integer> yearsCombo, monthsCombo, daysCombo;
     @FXML
     private ComboBox<String> sexComboBox;
 
@@ -110,10 +119,51 @@ public class MainController {
         this.scigraphMiningUrl = scigraphMiningUrl;
         this.phenopacketsVersion = phenopacketsVersion;
         this.ecoVersion = ecoVersion;
+        ImmutableList.Builder<Integer> builder = new ImmutableList.Builder<>();
+        for (int i=1; i<31; i++) {
+            builder.add(i);
+        }
+        this.days = builder.build();
+        builder = new ImmutableList.Builder<>();
+        for (int i=1; i<121; i++) {
+            builder.add(i);
+        }
+        years = builder.build();
+    }
 
-        // run the initialization task on separate thread
+ 
+    public void initialize() {
+        // generate phenotype summary text
+        phenotypes.addListener(makePhenotypeSummaryLabel(phenotypes, phenotypeSummaryLabel));
+        genomeBuildComboBox.getItems().addAll(assemblies);
+        sexComboBox.getItems().addAll(sexValues);
+        sexComboBox.setValue("UNKNOWN");
+        probandIdTextfield.setPromptText("ID for proband/patient");
+        phenopacketIdTextfield.setPromptText("ID for Phenopacket");
+        hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
+        exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
+        optionalResources.ontologyProperty().isNull().addListener((obs, oldValue, newValue) -> {
+            if (newValue) {
+                statusLabel.setText("Need to set path to hp.obo file (See edit menu)");
+                statusLabel.setStyle(INVALID_STYLE);
+            } else {
+                statusLabel.setText("Ontology loaded");
+                statusLabel.setStyle(VALID_STYLE);
+            }
+        });
+
+        // run the initialization task on a separate thread
         StartupTask task = new StartupTask(optionalResources, pgProperties);
-        this.executorService.submit(task);
+        statusLabel.textProperty().bind(task.messageProperty());
+        daysCombo.getItems().addAll(days);
+        daysCombo.setPromptText("Days");
+        monthsCombo.getItems().addAll(months);
+        monthsCombo.setPromptText("Months");
+        yearsCombo.getItems().addAll(years);
+        yearsCombo.setPromptText("Years");
+        // we don't have to watch the task's status after completion
+        task.setOnSucceeded(e -> statusLabel.textProperty().unbind());
+        executorService.submit(task);
     }
 
     /**
@@ -160,27 +210,30 @@ public class MainController {
         };
     }
 
-    public void initialize() {
-        // generate phenotype summary text
-        phenotypes.addListener(makePhenotypeSummaryLabel(phenotypes, phenotypeSummaryLabel));
-        genomeBuildComboBox.getItems().addAll(assemblies);
-        sexComboBox.getItems().addAll(sexValues);
-        sexComboBox.setValue("UNKNOWN");
-        probandIdTextfield.setPromptText("ID for proband/patient");
-        phenopacketIdTextfield.setPromptText("ID for Phenopacket");
-        ageTextfield.setPromptText("PxxYyyMzzD");
-        Tooltip agett = new Tooltip("Enter Age is ISO 8601 format, e.g., P42Y for 42 years, P12Y2M3D for 12 years, 2 months, and 3 days");
-        ageTextfield.setTooltip(agett);
-        hpoTextMiningButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
-        exportPhenopacketButton.disableProperty().bind(optionalResources.ontologyProperty().isNull());
-        if (optionalResources.ontologyProperty().isNull().get()) {
-            statusLabel.setText("  Need to set path to hp.obo file (See edit menu)");
-            statusLabel.setStyle(INVALID_STYLE);
-        } else {
-            statusLabel.setText("  Ontology loaded");
-            statusLabel.setStyle(VALID_STYLE);
+
+    private String getIso8601AgeString() {
+        if (yearsCombo.getSelectionModel().isEmpty() &&
+                monthsCombo.getSelectionModel().isEmpty() &&
+                daysCombo.getSelectionModel().isEmpty()) {
+            return null;
         }
+        String age = "P";
+        if (! yearsCombo.getSelectionModel().isEmpty()) {
+            int y = yearsCombo.getValue();
+            age = String.format("%s%dY",age,y);
+        }
+        if (! monthsCombo.getSelectionModel().isEmpty()) {
+            int m = monthsCombo.getValue();
+            age = String.format("%s%dM",age,m);
+        }
+        if (! daysCombo.getSelectionModel().isEmpty()) {
+            int d = daysCombo.getValue();
+            age = String.format("%s%dD",age,d);
+        }
+        return age;
     }
+
+  
 
 
     @FXML
@@ -191,7 +244,7 @@ public class MainController {
             String assembly = genomeBuildComboBox.getValue() == null ? "hg19" : genomeBuildComboBox.getValue();
             pgmodel.setGenomeAssembly(assembly);
         }
-        pgmodel.setBiocurator(pgProperties.getProperty(OptionalResources.BIOCURATOR_ID_PROPERTY, "N/A"));
+        pgmodel.setBiocurator(pgProperties.getProperty(OptionalResources.BIOCURATOR_ID_PROPERTY, EMPTY_STRING));
         String id = probandIdTextfield.getText();
         String ppacketid = phenopacketIdTextfield.getText();
         pgmodel.setProbandId(id);
@@ -200,7 +253,7 @@ public class MainController {
         pgmodel.setHpoVersion(hpoVersion);
         pgmodel.setEcoVersion(ecoVersion);
         pgmodel.setPhenopacketVersion(this.phenopacketsVersion);
-        pgmodel.setIsoAge(ageTextfield.getText());
+        pgmodel.setIsoAge(getIso8601AgeString());
         pgmodel.setSex(sexComboBox.getValue());
         try {
             pgmodel.qc();
@@ -217,8 +270,6 @@ public class MainController {
             return;
         }
         PhenopacketExporter exporter = new PhenopacketExporter(pgmodel);
-        System.out.println("[TODO] Save complete Phenopacket to this file: " + f.getAbsolutePath());
-
         exporter.export(f);
         String abspath = f.getAbsolutePath();
         int L = abspath.length();
