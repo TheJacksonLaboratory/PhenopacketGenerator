@@ -108,10 +108,10 @@ public class PhenopacketExporter {
                 .setNegated(oc.getNotObserved())
                 .addEvidence(Evidence.newBuilder()
                         .setEvidenceCode(TRACEABLE_AUTHOR_STATEMENT)
-                        .setReference(ExternalReference.newBuilder()
-                                .setId("ID:todo") // TODO
-                                .setDescription("Phenopacket created with PhenopacketGenerator")
-                                .build())
+                      //  .setReference(ExternalReference.newBuilder()
+                        //        .setId("ID:todo") // TODO
+                          //      .setDescription("Phenopacket created with PhenopacketGenerator")
+                           //     .build())
                         .build())
                 .build();
     }
@@ -146,6 +146,19 @@ public class PhenopacketExporter {
     }
 
 
+    private String getVcfUri() {
+        if (vcfPath.startsWith("file")){
+            return vcfPath;
+        } else if (this.vcfPath.startsWith("//")) {
+            return String.format("file:%s",this.vcfPath);
+        } else if (this.vcfPath.startsWith("/")) {
+            return String.format("file:/%s",this.vcfPath);
+        } else {
+            File f = new File(vcfPath);
+            return String.format("file://%s",f.getAbsolutePath());
+        }
+    }
+
 
     private Phenopacket encode() {
         Phenopacket.Builder builder = Phenopacket.newBuilder()
@@ -160,7 +173,7 @@ public class PhenopacketExporter {
             HtsFile hts = HtsFile.newBuilder()
                     .setHtsFormat(HtsFile.HtsFormat.VCF)
                     .setGenomeAssembly(this.genomeAssembly)
-                    .setUri(this.vcfPath)
+                    .setUri(getVcfUri())
                     .build();
             builder.addHtsFiles(hts);
         }
