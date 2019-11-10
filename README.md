@@ -90,43 +90,35 @@ is indicated.
   },
   "phenotypicFeatures": [{
     "type": {
-      "id": "HP:0030242",
-      "label": "Portal vein thrombosis"
-    },
-    "evidence": [{
-      "evidenceCode": {
-        "id": "ECO:0000033",
-        "label": "author statement supported by traceable reference"
-      },
-      "reference": {
-        "id": "ID:todo",
-        "description": "Phenopacket created with PhenopacketGenerator"
-      }
-    }]
-  }, {
-    "type": {
       "id": "HP:0001744",
       "label": "Splenomegaly"
     },
     "evidence": [{
       "evidenceCode": {
-        "id": "ECO:0000033",
-        "label": "author statement supported by traceable reference"
-      },
-      "reference": {
-        "id": "ID:todo",
-        "description": "Phenopacket created with PhenopacketGenerator"
+        "id": "ECO:0000302",
+        "label": "author statement used in manual assertion"
+      }
+    }]
+  }, {
+    "type": {
+      "id": "HP:0030242",
+      "label": "Portal vein thrombosis"
+    },
+    "evidence": [{
+      "evidenceCode": {
+        "id": "ECO:0000302",
+        "label": "author statement used in manual assertion"
       }
     }]
   }],
   "htsFiles": [{
-    "uri": "/path/to/example.vcf",
+    "uri": "file://home/peter/data/lirical/SRR8906477.filtered.vcf",
     "htsFormat": "VCF",
     "genomeAssembly": "hg38"
   }],
   "metaData": {
-    "created": "2019-11-08T14:04:00.602Z",
-    "createdBy": "HPO:probinson",
+    "created": "2019-11-10T15:47:06.750Z",
+    "createdBy": "ExampleOrg:ExampleCurator",
     "resources": [{
       "id": "hp",
       "name": "human phenotype ontology",
@@ -138,7 +130,7 @@ is indicated.
       "id": "eco",
       "name": "Evidence and Conclusion Ontology",
       "url": "http://purl.obolibrary.org/obo/eco.owl",
-      "version": "2018-11-10",
+      "version": "2019-10-16",
       "namespacePrefix": "ECO",
       "iriPrefix": "http://purl.obolibrary.org/obo/ECO_"
     }],
