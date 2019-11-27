@@ -59,7 +59,7 @@ public class MainController {
      */
     private final List<String> assemblies = ImmutableList.of("hg19", "hg38", "hg39");
 
-    private final List<Integer> months = ImmutableList.of(1,2,3,4,5,6,7,8,9,10,11);
+    private final List<Integer> months = ImmutableList.of(0, 1,2,3,4,5,6,7,8,9,10,11);
     private final List<Integer> days;
     private final List<Integer> years;
 
@@ -120,12 +120,12 @@ public class MainController {
         this.phenopacketsVersion = phenopacketsVersion;
         this.ecoVersion = ecoVersion;
         ImmutableList.Builder<Integer> builder = new ImmutableList.Builder<>();
-        for (int i=1; i<31; i++) {
+        for (int i=0; i<31; i++) {
             builder.add(i);
         }
         this.days = builder.build();
         builder = new ImmutableList.Builder<>();
-        for (int i=1; i<121; i++) {
+        for (int i=0; i<121; i++) {
             builder.add(i);
         }
         years = builder.build();
@@ -220,15 +220,18 @@ public class MainController {
         String age = "P";
         if (! yearsCombo.getSelectionModel().isEmpty()) {
             int y = yearsCombo.getValue();
-            age = String.format("%s%dY",age,y);
+            if (y > 0)
+                age = String.format("%s%dY",age,y);
         }
         if (! monthsCombo.getSelectionModel().isEmpty()) {
             int m = monthsCombo.getValue();
-            age = String.format("%s%dM",age,m);
+            if (m > 0)
+                age = String.format("%s%dM",age,m);
         }
         if (! daysCombo.getSelectionModel().isEmpty()) {
             int d = daysCombo.getValue();
-            age = String.format("%s%dD",age,d);
+            if (d > 0)
+                age = String.format("%s%dD",age,d);
         }
         return age;
     }
