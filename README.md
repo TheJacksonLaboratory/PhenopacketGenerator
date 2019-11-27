@@ -20,7 +20,7 @@ This will build PhenopacketGenerator in the ``target/`` subdirectory.
 On most systems, PhenopacketGenerator can be started with a double click. It can also be started from the command
 line as follows.
 ```aidl
-$ java -jar Phenopacket-Generator-0.0.3.jar 
+$ java -jar Phenopacket-Generator.jar 
 ```
 
 To set up the executable, you will need to indicate the path to the version of the

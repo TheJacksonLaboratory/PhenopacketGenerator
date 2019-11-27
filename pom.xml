@@ -28,7 +28,7 @@
     </properties>
 
     <build>
-        <finalName>Phenopacket-Generator-${project.version}</finalName>
+        <finalName>Phenopacket-Generator</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
