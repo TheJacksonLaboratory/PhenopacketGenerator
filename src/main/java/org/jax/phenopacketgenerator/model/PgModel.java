@@ -1,6 +1,10 @@
 package org.jax.phenopacketgenerator.model;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,7 +17,7 @@ public class PgModel {
 
     private String hpoVersion = EMPTY_STRING;
     private String ecoVersion = EMPTY_STRING;
-    private final List<PgOntologyClass> phenotypes;
+    private final TreeSet<PgOntologyClass> phenotypes;
     private String vcfPath = null;
     private String genomeAssembly;
     private String biocurator = EMPTY_STRING;
@@ -27,7 +31,7 @@ public class PgModel {
     private final Pattern pattern = Pattern.compile(iso8601);
 
     public PgModel(List<PgOntologyClass> phenotypes) {
-        this.phenotypes = phenotypes;
+        this.phenotypes = new TreeSet<>(phenotypes);
     }
 
     public String getIsoAge() {
@@ -85,7 +89,11 @@ public class PgModel {
     }
 
     public List<PgOntologyClass> getPhenotypes() {
-        return phenotypes;
+        ImmutableList.Builder<PgOntologyClass> builder = new ImmutableList.Builder<>();
+        for (PgOntologyClass pgoc : this.phenotypes) {
+            builder.add(pgoc);
+        }
+        return builder.build();
     }
 
     public String getVcfPath() {
