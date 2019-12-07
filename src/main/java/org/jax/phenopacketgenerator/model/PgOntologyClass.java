@@ -1,5 +1,7 @@
 package org.jax.phenopacketgenerator.model;
 
+import java.util.Objects;
+
 /**
  * POJO based on the protobuf model of HpoCaseAnnotator
  * <pre>
@@ -17,7 +19,7 @@ package org.jax.phenopacketgenerator.model;
 
  * </pre>
  */
-public class PgOntologyClass {
+public class PgOntologyClass implements Comparable<PgOntologyClass> {
     private final String id;
     private final String label;
     private final boolean not_observed;
@@ -40,10 +42,30 @@ public class PgOntologyClass {
         this.not_observed = not_obs;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PgOntologyClass that = (PgOntologyClass) o;
+        return not_observed == that.not_observed &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(label, that.label);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(id, label, not_observed);
+    }
+
     public static PgOntologyClass.Builder newBuilder() {
         return new PgOntologyClass.Builder();
     }
 
+    @Override
+    public int compareTo(PgOntologyClass o) {
+        return this.label.compareTo(o.label);
+    }
 
 
     public static class Builder {
