@@ -134,7 +134,7 @@ is indicated.
       "namespacePrefix": "ECO",
       "iriPrefix": "http://purl.obolibrary.org/obo/ECO_"
     }],
-    "phenopacketSchemaVersion": "1.0.0-RC3"
+    "phenopacketSchemaVersion": "1.0.0"
   }
 }
 ```
