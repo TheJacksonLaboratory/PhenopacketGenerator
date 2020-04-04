@@ -49,10 +49,9 @@ public final class StartupTask extends Task<Void> {
      * </ul>
      *
      * @return nothing
-     * @throws Exception if an error occurs
      */
     @Override
-    protected Void call() throws Exception {
+    protected Void call() {
         // HPO
         /*
         This is the place where we deserialize HPO ontology if we know path to the OBO file.

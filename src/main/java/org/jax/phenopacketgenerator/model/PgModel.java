@@ -2,7 +2,6 @@ package org.jax.phenopacketgenerator.model;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -146,9 +145,7 @@ public class PgModel {
         if (this.probandId.equals(EMPTY_STRING) || probandId.isEmpty()) {
             throw new PGException("Proband ID is not initialized");
         }
-        if (this.isoAge == null || this.isoAge.equals(EMPTY_STRING) || this.isoAge.isEmpty()) {
-            // OK, not required
-        } else {
+        if (this.isoAge != null && !this.isoAge.equals(EMPTY_STRING) && !this.isoAge.isEmpty()) {
             Matcher m = pattern.matcher(isoAge);
             if (! m.find()) {
                 throw new PGException("Invalid age string: " + isoAge);

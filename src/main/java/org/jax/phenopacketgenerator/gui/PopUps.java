@@ -45,7 +45,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class PopUps {
-    private static final Logger logger = LogManager.getLogger();
 
     /**
      * See this http://code.makery.ch/blog/javafx-dialogs-official/ to get a bit of inspiration
