@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.jax.phenopacketgenerator</groupId>
-    <version>0.0.7</version>
+    <version>0.0.8</version>
     <artifactId>phenopacketgenerator</artifactId>
 
     <parent>
@@ -23,7 +23,7 @@
         <junit-jupiter.version>5.4.1</junit-jupiter.version>
         <slf4j.version>1.7.25</slf4j.version>
         <protobuf.version>3.8.0</protobuf.version>
-        <phenol.version>1.4.4</phenol.version>
+        <phenol.version>1.5.0</phenol.version>
         <testfx.version>4.0.15-alpha</testfx.version>
     </properties>
 
