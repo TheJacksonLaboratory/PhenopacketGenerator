@@ -267,6 +267,13 @@ public class MainController {
 
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Export as Phenopacket (JSON) file");
+        String probandId = this.probandIdTextfield.getText();
+        if (probandId == null || probandId.isEmpty()) {
+            PopUps.showInfoMessage("Enter a proband ID before saving Phenopacket", "Error");
+            return;
+        }
+        String suggestedFileName = String.format("%s-phenopacket.json",probandId);
+        chooser.setInitialFileName(suggestedFileName);
         File f = chooser.showSaveDialog(exportPhenopacketButton.getScene().getWindow());
         if (f == null) {
             PopUps.showInfoMessage("Could not retrieve path to save phenopacket", "Warning");
