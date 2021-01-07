@@ -64,6 +64,11 @@ public class MainController {
     private final List<Integer> years;
 
     private final String EMPTY_STRING = "";
+    /** This can be used to generate a VCF file with a placeholder at the position of the VCF path. We can then
+     * use a script to generate the corresponding VCF file with the correct path. This can be useful if we plan to
+     * use a Phenopacket on multiple systems where the path to a given VCF file (or copy thereof) may be different.
+     */
+    private final String vcfPlaceHolderPath = "VcfPathPlaceholder";
 
     /**
      * valid values for sex combobox
@@ -104,6 +109,8 @@ public class MainController {
     private Label exportPhenopacketLabel;
     @FXML
     private Label statusLabel;
+    @FXML
+    private CheckBox cbPlaceholder;
 
 
     @Autowired
@@ -242,9 +249,12 @@ public class MainController {
     @FXML
     void exportPhenopacket() {
         PgModel pgmodel = new PgModel(phenotypes);
-        if (vcfFileAbsolutePath != null) {
+        String assembly = genomeBuildComboBox.getValue() == null ? "hg19" : genomeBuildComboBox.getValue();
+        if (this.cbPlaceholder.isSelected()) {
+            pgmodel.setVcfPath(vcfPlaceHolderPath);
+            pgmodel.setGenomeAssembly(assembly);
+        } else if (vcfFileAbsolutePath != null) {
             pgmodel.setVcfPath(vcfFileAbsolutePath);
-            String assembly = genomeBuildComboBox.getValue() == null ? "hg19" : genomeBuildComboBox.getValue();
             pgmodel.setGenomeAssembly(assembly);
         }
         pgmodel.setBiocurator(pgProperties.getProperty(OptionalResources.BIOCURATOR_ID_PROPERTY, EMPTY_STRING));

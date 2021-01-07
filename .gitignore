@@ -28,4 +28,5 @@ target/
 # IntelliJ stuff
 .idea/
 *.iml
+scripts/*.json
 
