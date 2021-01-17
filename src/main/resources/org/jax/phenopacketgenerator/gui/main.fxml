@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
@@ -17,7 +18,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.jax.phenopacketgenerator.gui.MainController">
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.jax.phenopacketgenerator.gui.MainController">
    <center>
        <AnchorPane fx:id="contentPane" prefHeight="350.0" prefWidth="800.0">
            <VBox prefHeight="300.0" prefWidth="800.0">
@@ -108,11 +109,14 @@
                            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                        </HBox.margin>
                    </Button>
-                   <Label fx:id="vcfFileLabel" minWidth="150.0" text="No VCF file">
-                       <HBox.margin>
-                           <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-                       </HBox.margin>
-                   </Label>
+               <VBox prefHeight="66.0" prefWidth="553.0">
+                     <CheckBox fx:id="cbPlaceholder" mnemonicParsing="false" text="Add placeholder">
+                        <padding>
+                           <Insets left="10.0" top="20.0" />
+                        </padding>
+                     </CheckBox>
+                         <Label fx:id="vcfFileLabel" minWidth="81.0" prefHeight="16.0" prefWidth="565.0" />
+               </VBox>
                </HBox>
                <ComboBox fx:id="genomeBuildComboBox" prefWidth="200.0" promptText="Genome assembly">
                    <VBox.margin>
@@ -156,7 +160,7 @@
        <HBox prefHeight="25.0" prefWidth="600.0" BorderPane.alignment="CENTER">
            <Label fx:id="statusLabel">
                <HBox.margin>
-                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                </HBox.margin>
            </Label>
        </HBox>
